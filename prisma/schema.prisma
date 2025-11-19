@@ -117,8 +117,8 @@ enum Severity {
 
 model ScanSchedule {
   id          String    @id @default(cuid())
-  orgId       String
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId       String?
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   userId      String
   url         String
   frequency   String    // e.g., "daily", "weekly", "monthly", or cron expression

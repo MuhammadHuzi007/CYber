@@ -119,35 +119,35 @@ export default function SchedulesPage() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen">
-      <nav className="glass sticky top-0 z-50 border-b border-white/20">
+    <div className="min-h-screen flex flex-col">
+      <nav className="glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
             <div className="flex items-center">
               <Link href="/" className="flex items-center space-x-3 group">
-                <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform">
                   <span className="text-white text-xl font-bold">🔒</span>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-xl font-bold gradient-text">
                     Vulnerability Scanner
                   </h1>
-                  <p className="text-xs text-gray-500">Scheduled Scans</p>
+                  <p className="text-xs text-muted-foreground">Scheduled Scans</p>
                 </div>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium">
+              <Link href="/dashboard" className="text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/5">
                 Dashboard
               </Link>
-              <Link href="/settings/alerts" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium">
+              <Link href="/settings/alerts" className="text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/5">
                 Alert Settings
               </Link>
             </div>
@@ -157,21 +157,21 @@ export default function SchedulesPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Scheduled Scans</h2>
+          <h2 className="text-3xl font-bold text-foreground">Scheduled Scans</h2>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold shadow-glow hover:shadow-glow-lg transition-all transform hover:scale-105"
           >
             {showForm ? 'Cancel' : '+ New Schedule'}
           </button>
         </div>
 
         {showForm && (
-          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 mb-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Create New Schedule</h3>
+          <div className="glass-card p-8 mb-8 rounded-2xl animate-slide-up">
+            <h3 className="text-xl font-bold text-foreground mb-6">Create New Schedule</h3>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">
                   URL to scan
                 </label>
                 <input
@@ -179,18 +179,18 @@ export default function SchedulesPage() {
                   value={formData.url}
                   onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                   placeholder="https://example.com"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 bg-secondary/20 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-foreground placeholder-muted-foreground"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-muted-foreground mb-2">
                   Frequency
                 </label>
                 <select
                   value={formData.frequency}
                   onChange={(e) => setFormData({ ...formData, frequency: e.target.value as any })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 bg-secondary/20 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-foreground"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -200,7 +200,7 @@ export default function SchedulesPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold shadow-glow hover:shadow-glow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Creating...' : 'Create Schedule'}
               </button>
@@ -208,42 +208,41 @@ export default function SchedulesPage() {
           </div>
         )}
 
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-200/50">
-            <h3 className="text-xl font-bold text-gray-900">Active Schedules</h3>
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="px-8 py-6 border-b border-white/5 bg-white/5">
+            <h3 className="text-xl font-bold text-foreground">Active Schedules</h3>
           </div>
           {schedules.length === 0 ? (
             <div className="px-8 py-16 text-center">
-              <p className="text-gray-500">No schedules yet. Create one above to get started.</p>
+              <p className="text-muted-foreground">No schedules yet. Create one above to get started.</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200/50">
+            <div className="divide-y divide-white/5">
               {schedules.map((schedule) => (
-                <div key={schedule.id} className="px-8 py-6 hover:bg-gray-50/50 transition-colors">
+                <div key={schedule.id} className="px-8 py-6 hover:bg-white/5 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h4 className="text-lg font-bold text-gray-900">{schedule.url}</h4>
-                        <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                          schedule.active
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
+                        <h4 className="text-lg font-bold text-foreground">{schedule.url}</h4>
+                        <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${schedule.active
+                            ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                            : 'bg-secondary/30 text-muted-foreground border border-white/10'
+                          }`}>
                           {schedule.active ? 'Active' : 'Inactive'}
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-4 text-sm text-gray-600">
+                      <div className="grid grid-cols-3 gap-4 text-sm text-muted-foreground">
                         <div>
-                          <span className="font-semibold">Frequency:</span> {schedule.frequency}
+                          <span className="font-semibold text-foreground">Frequency:</span> {schedule.frequency}
                         </div>
                         <div>
-                          <span className="font-semibold">Last Run:</span>{' '}
+                          <span className="font-semibold text-foreground">Last Run:</span>{' '}
                           {schedule.lastRunAt
                             ? new Date(schedule.lastRunAt).toLocaleString()
                             : 'Never'}
                         </div>
                         <div>
-                          <span className="font-semibold">Next Run:</span>{' '}
+                          <span className="font-semibold text-foreground">Next Run:</span>{' '}
                           {schedule.nextRunAt
                             ? new Date(schedule.nextRunAt).toLocaleString()
                             : 'N/A'}
@@ -253,17 +252,16 @@ export default function SchedulesPage() {
                     <div className="flex items-center space-x-3">
                       <button
                         onClick={() => handleToggle(schedule.id, schedule.active)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                          schedule.active
-                            ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${schedule.active
+                            ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20'
+                            : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                          }`}
                       >
                         {schedule.active ? 'Deactivate' : 'Activate'}
                       </button>
                       <button
                         onClick={() => handleDelete(schedule.id)}
-                        className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
+                        className="px-4 py-2 bg-red-500/10 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/20 transition-colors"
                       >
                         Delete
                       </button>
@@ -278,4 +276,3 @@ export default function SchedulesPage() {
     </div>
   )
 }
-

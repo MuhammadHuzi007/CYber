@@ -3,34 +3,72 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  
+  --popover: #0f172a;
+  --popover-foreground: #f8fafc;
+  
   --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --gradient-start: #667eea;
-  --gradient-end: #764ba2;
+  --primary-foreground: #ffffff;
+  
+  --secondary: #64748b;
+  --secondary-foreground: #ffffff;
+  
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  
+  --accent: #8b5cf6;
+  --accent-foreground: #ffffff;
+  
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: #334155;
+  --input: #334155;
+  --ring: #3b82f6;
+  
+  --radius: 0.75rem;
+  
+  --gradient-start: #3b82f6;
+  --gradient-end: #8b5cf6;
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 
 body {
   color: var(--foreground);
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  background: var(--background);
+  font-family: 'Inter', sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 100% 0%, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
+  background-attachment: fixed;
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .glass {
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
   
-  .glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+  .glass-card {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400;
   }
   
   .gradient-bg {
@@ -43,42 +81,12 @@ body {
   
   .card-hover:hover {
     transform: translateY(-4px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
   }
   
-  .shimmer {
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.2) 50%,
-      rgba(255, 255, 255, 0) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-  }
-  
-  @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
-  
-  .pulse-ring {
-    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes pulse-ring {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.5;
-      transform: scale(1.05);
-    }
+  .neon-glow {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5),
+                0 0 20px rgba(59, 130, 246, 0.3);
   }
 }
-

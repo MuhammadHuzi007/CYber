@@ -38,7 +38,7 @@ export default function Dashboard() {
   const [scanType, setScanType] = useState<'QUICK' | 'STANDARD' | 'DEEP'>('STANDARD')
   const [scanProgress, setScanProgress] = useState<{ progress: number; currentCheck: string } | null>(null)
   const [scanningScanId, setScanningScanId] = useState<string | null>(null)
-  
+
   // Filters
   const [riskFilter, setRiskFilter] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -144,9 +144,9 @@ export default function Dashboard() {
           if (progressResponse.ok) {
             const scan = await progressResponse.json()
             if (scan.status === 'RUNNING') {
-              setScanProgress({ 
-                progress: scan.progress || 0, 
-                currentCheck: `Scanning... ${scan.progress || 0}%` 
+              setScanProgress({
+                progress: scan.progress || 0,
+                currentCheck: `Scanning... ${scan.progress || 0}%`
               })
             } else if (scan.status === 'COMPLETED' || scan.status === 'FAILED') {
               clearInterval(progressInterval)
@@ -186,73 +186,73 @@ export default function Dashboard() {
   const getRiskColor = (level: string) => {
     switch (level) {
       case 'HIGH':
-        return 'bg-red-50 text-red-700 border-red-300 shadow-sm'
+        return 'bg-red-500/10 text-red-400 border-red-500/30'
       case 'MEDIUM':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-300 shadow-sm'
+        return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
       case 'LOW':
-        return 'bg-green-50 text-green-700 border-green-300 shadow-sm'
+        return 'bg-green-500/10 text-green-400 border-green-500/30'
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-300 shadow-sm'
+        return 'bg-gray-500/10 text-gray-400 border-gray-500/30'
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-        return 'text-green-600 bg-green-50'
+        return 'text-green-400 bg-green-500/10'
       case 'FAILED':
-        return 'text-red-600 bg-red-50'
+        return 'text-red-400 bg-red-500/10'
       case 'PENDING':
-        return 'text-yellow-600 bg-yellow-50'
+        return 'text-yellow-400 bg-yellow-500/10'
       default:
-        return 'text-gray-600 bg-gray-50'
+        return 'text-muted-foreground bg-secondary/50'
     }
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       {/* Navigation */}
-      <nav className="glass sticky top-0 z-50 border-b border-white/20">
+      <nav className="glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
             <div className="flex items-center">
               <Link href="/" className="flex items-center space-x-3 group">
-                <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform">
                   <span className="text-white text-xl font-bold">🔒</span>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-xl font-bold gradient-text">
                     Vulnerability Scanner
                   </h1>
-                  <p className="text-xs text-gray-500">Enterprise Security Analysis</p>
+                  <p className="text-xs text-muted-foreground">Enterprise Security Analysis</p>
                 </div>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">{user.email}</span>
+              <span className="text-sm text-muted-foreground hidden sm:block">{user.email}</span>
               <Link
                 href="/schedules"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+                className="text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
               >
                 Schedules
               </Link>
               <Link
                 href="/settings/alerts"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+                className="text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
               >
                 Alerts
               </Link>
               <button
                 onClick={handleLogout}
-                className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+                className="text-muted-foreground hover:text-foreground px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
               >
                 Logout
               </button>
@@ -265,46 +265,46 @@ export default function Dashboard() {
         {/* Stats Section */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
+            <div className="glass-card p-6 rounded-2xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Scans</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalScans}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Total Scans</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.totalScans}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
                   <span className="text-2xl">📊</span>
                 </div>
               </div>
             </div>
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
+            <div className="glass-card p-6 rounded-2xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Low Risk</p>
-                  <p className="text-3xl font-bold text-green-600">{stats.byRisk.LOW}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Low Risk</p>
+                  <p className="text-3xl font-bold text-green-400">{stats.byRisk.LOW}</p>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
                   <span className="text-2xl">✅</span>
                 </div>
               </div>
             </div>
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
+            <div className="glass-card p-6 rounded-2xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Medium Risk</p>
-                  <p className="text-3xl font-bold text-yellow-600">{stats.byRisk.MEDIUM}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Medium Risk</p>
+                  <p className="text-3xl font-bold text-yellow-400">{stats.byRisk.MEDIUM}</p>
                 </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-yellow-500/10 rounded-xl flex items-center justify-center">
                   <span className="text-2xl">⚠️</span>
                 </div>
               </div>
             </div>
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
+            <div className="glass-card p-6 rounded-2xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">High Risk</p>
-                  <p className="text-3xl font-bold text-red-600">{stats.byRisk.HIGH}</p>
+                  <p className="text-sm text-muted-foreground mb-1">High Risk</p>
+                  <p className="text-3xl font-bold text-red-400">{stats.byRisk.HIGH}</p>
                 </div>
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center">
                   <span className="text-2xl">🔴</span>
                 </div>
               </div>
@@ -315,31 +315,31 @@ export default function Dashboard() {
         {/* Scan Form */}
         <div className="mb-12">
           <div className="text-center mb-8 animate-fade-in">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4">
               Secure Your Digital Assets
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Comprehensive security scanning for vulnerabilities, headers, SSL, and open ports
             </p>
           </div>
-          
-          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 mb-8 card-hover animate-slide-up">
+
+          <div className="glass-card p-8 rounded-2xl mb-8 animate-slide-up">
             <div className="flex items-center space-x-2 mb-6">
               <div className="w-2 h-2 bg-green-500 rounded-full pulse-ring"></div>
-              <h3 className="text-2xl font-bold text-gray-900">New Security Scan</h3>
+              <h3 className="text-2xl font-bold text-foreground">New Security Scan</h3>
             </div>
             <form onSubmit={handleScan} className="space-y-6">
               <div>
                 <label
                   htmlFor="url"
-                  className="block text-sm font-semibold text-gray-700 mb-3"
+                  className="block text-sm font-semibold text-muted-foreground mb-3"
                 >
                   Enter URL to scan
                 </label>
                 <div className="flex gap-3">
                   <div className="flex-1 relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <span className="text-gray-400 text-lg">🌐</span>
+                      <span className="text-muted-foreground text-lg">🌐</span>
                     </div>
                     <input
                       type="text"
@@ -347,7 +347,7 @@ export default function Dashboard() {
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://example.com"
-                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400"
+                      className="w-full pl-12 pr-4 py-4 bg-secondary/20 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-foreground placeholder-muted-foreground"
                       required
                       disabled={loading}
                     />
@@ -355,7 +355,7 @@ export default function Dashboard() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="gradient-bg text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center space-x-2 min-w-[140px] justify-center"
+                    className="gradient-bg text-white px-8 py-4 rounded-xl font-semibold shadow-glow hover:shadow-glow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center space-x-2 min-w-[140px] justify-center"
                   >
                     {loading ? (
                       <>
@@ -371,11 +371,11 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
-              
+
               <div>
                 <label
                   htmlFor="scanType"
-                  className="block text-sm font-semibold text-gray-700 mb-3"
+                  className="block text-sm font-semibold text-muted-foreground mb-3"
                 >
                   Scan Type
                 </label>
@@ -384,11 +384,10 @@ export default function Dashboard() {
                     type="button"
                     onClick={() => setScanType('QUICK')}
                     disabled={loading}
-                    className={`px-4 py-3 rounded-xl font-medium transition-all ${
-                      scanType === 'QUICK'
-                        ? 'gradient-bg text-white shadow-lg'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`px-4 py-3 rounded-xl font-medium transition-all border ${scanType === 'QUICK'
+                        ? 'gradient-bg text-white border-transparent shadow-glow'
+                        : 'bg-secondary/20 text-muted-foreground border-border hover:bg-secondary/40'
+                      }`}
                   >
                     <div className="text-sm font-bold">⚡ Quick</div>
                     <div className="text-xs opacity-80">Basic checks (~30s)</div>
@@ -397,11 +396,10 @@ export default function Dashboard() {
                     type="button"
                     onClick={() => setScanType('STANDARD')}
                     disabled={loading}
-                    className={`px-4 py-3 rounded-xl font-medium transition-all ${
-                      scanType === 'STANDARD'
-                        ? 'gradient-bg text-white shadow-lg'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`px-4 py-3 rounded-xl font-medium transition-all border ${scanType === 'STANDARD'
+                        ? 'gradient-bg text-white border-transparent shadow-glow'
+                        : 'bg-secondary/20 text-muted-foreground border-border hover:bg-secondary/40'
+                      }`}
                   >
                     <div className="text-sm font-bold">🔍 Standard</div>
                     <div className="text-xs opacity-80">Comprehensive (~2min)</div>
@@ -410,11 +408,10 @@ export default function Dashboard() {
                     type="button"
                     onClick={() => setScanType('DEEP')}
                     disabled={loading}
-                    className={`px-4 py-3 rounded-xl font-medium transition-all ${
-                      scanType === 'DEEP'
-                        ? 'gradient-bg text-white shadow-lg'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`px-4 py-3 rounded-xl font-medium transition-all border ${scanType === 'DEEP'
+                        ? 'gradient-bg text-white border-transparent shadow-glow'
+                        : 'bg-secondary/20 text-muted-foreground border-border hover:bg-secondary/40'
+                      }`}
                   >
                     <div className="text-sm font-bold">🔬 Deep</div>
                     <div className="text-xs opacity-80">Full analysis (~5min)</div>
@@ -423,12 +420,12 @@ export default function Dashboard() {
               </div>
 
               {scanProgress && (
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-blue-900">{scanProgress.currentCheck}</span>
-                    <span className="text-sm font-bold text-blue-700">{scanProgress.progress}%</span>
+                    <span className="text-sm font-semibold text-blue-400">{scanProgress.currentCheck}</span>
+                    <span className="text-sm font-bold text-blue-400">{scanProgress.progress}%</span>
                   </div>
-                  <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden">
+                  <div className="w-full bg-blue-900/30 rounded-full h-3 overflow-hidden">
                     <div
                       className="gradient-bg h-full transition-all duration-300 ease-out"
                       style={{ width: `${scanProgress.progress}%` }}
@@ -438,7 +435,7 @@ export default function Dashboard() {
               )}
 
               {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg flex items-center space-x-2 animate-fade-in">
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg flex items-center space-x-2 animate-fade-in">
                   <span>⚠️</span>
                   <span>{error}</span>
                 </div>
@@ -448,25 +445,25 @@ export default function Dashboard() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6 mb-6">
+        <div className="glass-card p-6 rounded-2xl mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900">Filters</h3>
+            <h3 className="text-lg font-bold text-foreground">Filters</h3>
             <button
               onClick={clearFilters}
-              className="text-sm text-gray-600 hover:text-gray-900"
+              className="text-sm text-muted-foreground hover:text-foreground"
             >
               Clear all
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Risk Level
               </label>
               <select
                 value={riskFilter}
                 onChange={(e) => setRiskFilter(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 bg-secondary/20 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-foreground"
               >
                 <option value="">All</option>
                 <option value="LOW">Low</option>
@@ -475,7 +472,7 @@ export default function Dashboard() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Search URL
               </label>
               <input
@@ -483,77 +480,77 @@ export default function Dashboard() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by URL..."
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 bg-secondary/20 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-foreground placeholder-muted-foreground"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 From Date
               </label>
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 bg-secondary/20 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-foreground"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 To Date
               </label>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 bg-secondary/20 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-foreground"
               />
             </div>
           </div>
         </div>
 
         {/* Scan History */}
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-200/50 bg-gradient-to-r from-gray-50 to-white">
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="px-8 py-6 border-b border-white/5 bg-white/5">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="text-blue-600 text-xl">📊</span>
+                <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                  <span className="text-blue-400 text-xl">📊</span>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Scan History</h2>
-                  <p className="text-sm text-gray-500">View all your security scans</p>
+                  <h2 className="text-2xl font-bold text-foreground">Scan History</h2>
+                  <p className="text-sm text-muted-foreground">View all your security scans</p>
                 </div>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 {scans.length} {scans.length === 1 ? 'scan' : 'scans'}
               </div>
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200/50">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50">
+            <table className="min-w-full divide-y divide-white/5">
+              <thead className="bg-white/5">
                 <tr>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <th className="px-8 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     URL
                   </th>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <th className="px-8 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <th className="px-8 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Risk Score
                   </th>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <th className="px-8 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Risk Level
                   </th>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <th className="px-8 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <th className="px-8 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200/50">
+              <tbody className="divide-y divide-white/5">
                 {scans.length === 0 ? (
                   <tr>
                     <td
@@ -561,66 +558,65 @@ export default function Dashboard() {
                       className="px-8 py-16 text-center"
                     >
                       <div className="flex flex-col items-center space-y-4">
-                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
+                        <div className="w-20 h-20 bg-secondary/20 rounded-full flex items-center justify-center">
                           <span className="text-4xl">🔍</span>
                         </div>
                         <div>
-                          <p className="text-gray-500 font-medium">No scans found</p>
-                          <p className="text-sm text-gray-400 mt-1">Start by scanning a URL above</p>
+                          <p className="text-muted-foreground font-medium">No scans found</p>
+                          <p className="text-sm text-muted-foreground/60 mt-1">Start by scanning a URL above</p>
                         </div>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   scans.map((scan, index) => (
-                    <tr 
-                      key={scan.id} 
-                      className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-200"
+                    <tr
+                      key={scan.id}
+                      className="hover:bg-white/5 transition-all duration-200"
                     >
                       <td className="px-8 py-5 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <div className="text-sm font-semibold text-gray-900 max-w-xs truncate">
+                          <div className="text-sm font-semibold text-foreground max-w-xs truncate">
                             {scan.url}
                           </div>
                         </div>
                       </td>
                       <td className="px-8 py-5 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted-foreground">
                           {new Date(scan.startedAt).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric'
                           })}
                         </div>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-muted-foreground/60">
                           {new Date(scan.startedAt).toLocaleTimeString('en-US', {
                             hour: '2-digit',
                             minute: '2-digit'
                           })}
                         </div>
                         {scan.duration && (
-                          <div className="text-xs text-blue-600 mt-1 font-medium">
+                          <div className="text-xs text-blue-400 mt-1 font-medium">
                             ⏱️ {scan.duration}s
                           </div>
                         )}
                         {scan.scanType && (
-                          <div className="text-xs text-purple-600 mt-1 font-medium">
+                          <div className="text-xs text-purple-400 mt-1 font-medium">
                             {scan.scanType}
                           </div>
                         )}
                       </td>
                       <td className="px-8 py-5 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
-                          <div className="text-lg font-bold text-gray-900">
+                          <div className="text-lg font-bold text-foreground">
                             {scan.riskScore}
                           </div>
-                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${
-                                scan.riskLevel === 'HIGH' ? 'bg-red-500' :
-                                scan.riskLevel === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'
-                              }`}
+                          <div className="w-16 h-2 bg-secondary/30 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${scan.riskLevel === 'HIGH' ? 'bg-red-500' :
+                                  scan.riskLevel === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'
+                                }`}
                               style={{ width: `${Math.min((scan.riskScore / 10) * 100, 100)}%` }}
                             ></div>
                           </div>
@@ -628,7 +624,7 @@ export default function Dashboard() {
                       </td>
                       <td className="px-8 py-5 whitespace-nowrap">
                         <span
-                          className={`px-3 py-1.5 text-xs font-bold rounded-full border-2 ${getRiskColor(
+                          className={`px-3 py-1.5 text-xs font-bold rounded-full border ${getRiskColor(
                             scan.riskLevel
                           )} shadow-sm`}
                         >
@@ -641,17 +637,16 @@ export default function Dashboard() {
                             scan.status
                           )}`}
                         >
-                          <span className={`w-2 h-2 rounded-full mr-2 ${
-                            scan.status === 'COMPLETED' ? 'bg-green-500' :
-                            scan.status === 'FAILED' ? 'bg-red-500' : 'bg-yellow-500'
-                          }`}></span>
+                          <span className={`w-2 h-2 rounded-full mr-2 ${scan.status === 'COMPLETED' ? 'bg-green-500' :
+                              scan.status === 'FAILED' ? 'bg-red-500' : 'bg-yellow-500'
+                            }`}></span>
                           {scan.status}
                         </span>
                       </td>
                       <td className="px-8 py-5 whitespace-nowrap text-sm font-medium">
                         <Link
                           href={`/scans/${scan.id}`}
-                          className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                          className="inline-flex items-center space-x-2 text-blue-400 hover:text-blue-300 font-semibold transition-colors"
                         >
                           <span>View Details</span>
                           <span>→</span>
@@ -668,4 +663,3 @@ export default function Dashboard() {
     </div>
   )
 }
-

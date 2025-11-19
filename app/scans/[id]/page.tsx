@@ -24,26 +24,6 @@ interface Scan {
   findings: Finding[]
 }
 
-interface Finding {
-  id: string
-  type: string
-  title: string
-  severity: string
-  passed: boolean
-  details: string | null
-}
-
-interface Scan {
-  id: string
-  url: string
-  riskScore: number
-  riskLevel: string
-  status: string
-  startedAt: string
-  completedAt: string | null
-  findings: Finding[]
-}
-
 export default function ScanDetailsPage() {
   const params = useParams()
   const router = useRouter()
@@ -127,40 +107,40 @@ export default function ScanDetailsPage() {
   const getRiskColor = (level: string) => {
     switch (level) {
       case 'HIGH':
-        return 'bg-red-50 text-red-700 border-red-300 shadow-sm'
+        return 'bg-red-500/10 text-red-400 border-red-500/30'
       case 'MEDIUM':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-300 shadow-sm'
+        return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
       case 'LOW':
-        return 'bg-green-50 text-green-700 border-green-300 shadow-sm'
+        return 'bg-green-500/10 text-green-400 border-green-500/30'
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-300 shadow-sm'
+        return 'bg-gray-500/10 text-gray-400 border-gray-500/30'
     }
   }
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'HIGH':
-        return 'bg-red-50 text-red-700 border-red-300'
+        return 'bg-red-500/10 text-red-400 border-red-500/30'
       case 'MEDIUM':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-300'
+        return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
       case 'LOW':
-        return 'bg-green-50 text-green-700 border-green-300'
+        return 'bg-green-500/10 text-green-400 border-green-500/30'
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-300'
+        return 'bg-gray-500/10 text-gray-400 border-gray-500/30'
     }
   }
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/30 border-t-primary mx-auto"></div>
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-2xl">🔒</span>
             </div>
           </div>
-          <p className="mt-6 text-gray-600 font-medium">Loading scan details...</p>
+          <p className="mt-6 text-muted-foreground font-medium">Loading scan details...</p>
         </div>
       </div>
     )
@@ -168,16 +148,16 @@ export default function ScanDetailsPage() {
 
   if (!scan) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-12">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center glass-card p-12 rounded-2xl">
+          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <span className="text-4xl">⚠️</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Scan not found</h1>
-          <p className="text-gray-600 mb-6">The scan you're looking for doesn't exist or has been removed.</p>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Scan not found</h1>
+          <p className="text-muted-foreground mb-6">The scan you're looking for doesn't exist or has been removed.</p>
           <Link
             href="/dashboard"
-            className="inline-flex items-center space-x-2 gradient-bg text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            className="inline-flex items-center space-x-2 gradient-bg text-white px-6 py-3 rounded-xl font-semibold shadow-glow hover:shadow-glow-lg transition-all transform hover:scale-105"
           >
             <span>←</span>
             <span>Return to dashboard</span>
@@ -188,31 +168,31 @@ export default function ScanDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       {/* Navigation */}
-      <nav className="glass sticky top-0 z-50 border-b border-white/20">
+      <nav className="glass sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
             <div className="flex items-center">
               <Link href="/dashboard" className="flex items-center space-x-3 group">
-                <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform">
                   <span className="text-white text-xl font-bold">🔒</span>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <h1 className="text-xl font-bold gradient-text">
                     Vulnerability Scanner
                   </h1>
-                  <p className="text-xs text-gray-500">Security Analysis</p>
+                  <p className="text-xs text-muted-foreground">Security Analysis</p>
                 </div>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
               {user && (
-                <span className="text-sm text-gray-600">{user.email}</span>
+                <span className="text-sm text-muted-foreground hidden sm:block">{user.email}</span>
               )}
               <Link
                 href="/dashboard"
-                className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+                className="flex items-center space-x-2 text-muted-foreground hover:text-foreground px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
               >
                 <span>←</span>
                 <span>Back to Dashboard</span>
@@ -220,7 +200,7 @@ export default function ScanDetailsPage() {
               {user && (
                 <button
                   onClick={handleLogout}
-                  className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+                  className="text-muted-foreground hover:text-foreground px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
                 >
                   Logout
                 </button>
@@ -232,20 +212,20 @@ export default function ScanDetailsPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Scan Header */}
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 mb-8 card-hover animate-slide-up">
+        <div className="glass-card p-8 mb-8 rounded-2xl animate-slide-up">
           <div className="flex justify-between items-start mb-6">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center shadow-glow">
                   <span className="text-white text-2xl">📋</span>
                 </div>
                 <div>
-                  <h1 className="text-3xl font-extrabold text-gray-900 mb-1">
+                  <h1 className="text-3xl font-extrabold text-foreground mb-1">
                     Scan Details
                   </h1>
-                  <p className="text-lg text-gray-600 flex items-center space-x-2">
+                  <p className="text-lg text-muted-foreground flex items-center space-x-2">
                     <span>🌐</span>
-                    <span className="font-medium">{scan.url}</span>
+                    <span className="font-medium text-foreground">{scan.url}</span>
                   </p>
                 </div>
               </div>
@@ -253,7 +233,7 @@ export default function ScanDetailsPage() {
             <button
               onClick={handleDownloadReport}
               disabled={downloading}
-              className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center space-x-2"
+              className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold shadow-glow hover:shadow-glow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center space-x-2"
             >
               {downloading ? (
                 <>
@@ -270,32 +250,31 @@ export default function ScanDetailsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-2 border-blue-200 shadow-sm">
+            <div className="bg-blue-500/10 rounded-xl p-6 border border-blue-500/30">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-semibold text-blue-700 uppercase tracking-wide">Risk Score</div>
+                <div className="text-sm font-semibold text-blue-400 uppercase tracking-wide">Risk Score</div>
                 <span className="text-2xl">🎯</span>
               </div>
-              <div className="text-4xl font-extrabold text-blue-900">
+              <div className="text-4xl font-extrabold text-blue-400">
                 {scan.riskScore}
               </div>
-              <div className="mt-3 w-full h-2 bg-blue-200 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${
-                    scan.riskLevel === 'HIGH' ? 'bg-red-500' :
-                    scan.riskLevel === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'
-                  }`}
+              <div className="mt-3 w-full h-2 bg-blue-900/30 rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${scan.riskLevel === 'HIGH' ? 'bg-red-500' :
+                      scan.riskLevel === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
                   style={{ width: `${Math.min((scan.riskScore / 10) * 100, 100)}%` }}
                 ></div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border-2 border-purple-200 shadow-sm">
+            <div className="bg-purple-500/10 rounded-xl p-6 border border-purple-500/30">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-semibold text-purple-700 uppercase tracking-wide">Risk Level</div>
+                <div className="text-sm font-semibold text-purple-400 uppercase tracking-wide">Risk Level</div>
                 <span className="text-2xl">⚠️</span>
               </div>
               <div className="mt-2">
                 <span
-                  className={`inline-block px-4 py-2 text-sm font-bold rounded-xl border-2 ${getRiskColor(
+                  className={`inline-block px-4 py-2 text-sm font-bold rounded-xl border ${getRiskColor(
                     scan.riskLevel
                   )} shadow-sm`}
                 >
@@ -303,19 +282,19 @@ export default function ScanDetailsPage() {
                 </span>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border-2 border-gray-200 shadow-sm">
+            <div className="bg-secondary/20 rounded-xl p-6 border border-border">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Scan Date</div>
+                <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Scan Date</div>
                 <span className="text-2xl">📅</span>
               </div>
-              <div className="text-lg font-bold text-gray-900">
+              <div className="text-lg font-bold text-foreground">
                 {new Date(scan.startedAt).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric'
                 })}
               </div>
-              <div className="text-sm text-gray-600 mt-1">
+              <div className="text-sm text-muted-foreground mt-1">
                 {new Date(scan.startedAt).toLocaleTimeString('en-US', {
                   hour: '2-digit',
                   minute: '2-digit'
@@ -326,32 +305,32 @@ export default function ScanDetailsPage() {
         </div>
 
         {/* Findings - Grouped by Type */}
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-200/50 bg-gradient-to-r from-gray-50 to-white">
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="px-8 py-6 border-b border-white/5 bg-white/5">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                  <span className="text-red-600 text-xl">🔍</span>
+                <div className="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center">
+                  <span className="text-red-400 text-xl">🔍</span>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-foreground">
                     Security Findings
                   </h2>
-                  <p className="text-sm text-gray-500">{scan.findings.length} checks performed</p>
+                  <p className="text-sm text-muted-foreground">{scan.findings.length} checks performed</p>
                 </div>
               </div>
             </div>
           </div>
-          
+
           {scan.findings.length === 0 ? (
             <div className="px-8 py-16 text-center">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-4xl">✅</span>
               </div>
-              <p className="text-gray-500 font-medium">No findings available</p>
+              <p className="text-muted-foreground font-medium">No findings available</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200/50">
+            <div className="divide-y divide-white/5">
               {['HEADER', 'SSL', 'PORT', 'XSS', 'OTHER'].map((type) => {
                 const typeFindings = scan.findings.filter(f => f.type === type)
                 if (typeFindings.length === 0) return null
@@ -376,8 +355,8 @@ export default function ScanDetailsPage() {
                   <div key={type} className="px-8 py-6">
                     <div className="flex items-center space-x-3 mb-4">
                       <span className="text-2xl">{typeIcons[type]}</span>
-                      <h3 className="text-xl font-bold text-gray-900">{typeLabels[type]}</h3>
-                      <span className="px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-700 rounded">
+                      <h3 className="text-xl font-bold text-foreground">{typeLabels[type]}</h3>
+                      <span className="px-2 py-1 text-xs font-semibold bg-secondary/30 text-muted-foreground rounded">
                         {typeFindings.length}
                       </span>
                     </div>
@@ -385,25 +364,24 @@ export default function ScanDetailsPage() {
                       {typeFindings.map((finding) => (
                         <div
                           key={finding.id}
-                          className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors"
+                          className="p-4 bg-secondary/10 rounded-xl border border-white/5 hover:bg-secondary/20 transition-colors"
                         >
                           <div className="flex items-start space-x-4">
-                            <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold shadow-sm ${
-                              finding.passed 
-                                ? 'bg-green-100 text-green-600 border-2 border-green-200' 
-                                : 'bg-red-100 text-red-600 border-2 border-red-200'
-                            }`}>
+                            <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold shadow-sm ${finding.passed
+                                ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                                : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                              }`}>
                               {finding.passed ? '✓' : '✗'}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between mb-2">
-                                <h4 className="text-base font-bold text-gray-900 pr-4">
+                                <h4 className="text-base font-bold text-foreground pr-4">
                                   {finding.title}
                                 </h4>
                               </div>
                               <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <span
-                                  className={`px-2.5 py-1 text-xs font-bold rounded-lg border-2 ${getSeverityColor(
+                                  className={`px-2.5 py-1 text-xs font-bold rounded-lg border ${getSeverityColor(
                                     finding.severity
                                   )} shadow-sm`}
                                 >
@@ -411,8 +389,8 @@ export default function ScanDetailsPage() {
                                 </span>
                               </div>
                               {finding.details && (
-                                <div className="mt-2 p-3 bg-white rounded-lg border border-gray-200">
-                                  <p className="text-sm text-gray-700 leading-relaxed">
+                                <div className="mt-2 p-3 bg-black/20 rounded-lg border border-white/5">
+                                  <p className="text-sm text-muted-foreground leading-relaxed">
                                     {finding.details}
                                   </p>
                                 </div>
@@ -432,4 +410,3 @@ export default function ScanDetailsPage() {
     </div>
   )
 }
-

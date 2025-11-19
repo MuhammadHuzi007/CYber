@@ -58,29 +58,29 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center">
           <Link href="/" className="inline-block mb-6">
-            <div className="w-16 h-16 gradient-bg rounded-2xl flex items-center justify-center shadow-lg mx-auto">
+            <div className="w-16 h-16 gradient-bg rounded-2xl flex items-center justify-center shadow-glow mx-auto">
               <span className="text-white text-3xl font-bold">🔒</span>
             </div>
           </Link>
-          <h2 className="text-4xl font-extrabold text-gray-900 mb-2">
+          <h2 className="text-4xl font-extrabold text-foreground mb-2">
             Create Account
           </h2>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Join us to start scanning for vulnerabilities
           </p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 card-hover">
+        <div className="glass-card p-8 rounded-2xl card-hover">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-semibold text-muted-foreground mb-2">
                   Email address
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="text-gray-400">📧</span>
+                    <span className="text-muted-foreground">📧</span>
                   </div>
                   <input
                     id="email"
@@ -90,18 +90,18 @@ export default function RegisterPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400"
+                    className="w-full pl-12 pr-4 py-3 bg-secondary/20 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-foreground placeholder-muted-foreground"
                     placeholder="you@example.com"
                   />
                 </div>
               </div>
               <div>
-                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="password" className="block text-sm font-semibold text-muted-foreground mb-2">
                   Password
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="text-gray-400">🔐</span>
+                    <span className="text-muted-foreground">🔐</span>
                   </div>
                   <input
                     id="password"
@@ -111,18 +111,18 @@ export default function RegisterPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400"
+                    className="w-full pl-12 pr-4 py-3 bg-secondary/20 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-foreground placeholder-muted-foreground"
                     placeholder="Min 6 characters"
                   />
                 </div>
               </div>
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-muted-foreground mb-2">
                   Confirm Password
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="text-gray-400">🔒</span>
+                    <span className="text-muted-foreground">🔒</span>
                   </div>
                   <input
                     id="confirmPassword"
@@ -132,7 +132,7 @@ export default function RegisterPage() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400"
+                    className="w-full pl-12 pr-4 py-3 bg-secondary/20 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-foreground placeholder-muted-foreground"
                     placeholder="Confirm your password"
                   />
                 </div>
@@ -140,7 +140,7 @@ export default function RegisterPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg flex items-center space-x-2 animate-fade-in">
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg flex items-center space-x-2 animate-fade-in">
                 <span>⚠️</span>
                 <span>{error}</span>
               </div>
@@ -150,7 +150,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full gradient-bg text-white py-3.5 rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
+                className="w-full gradient-bg text-white py-3.5 rounded-xl font-semibold shadow-glow hover:shadow-glow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
               >
                 {loading ? (
                   <>
@@ -167,18 +167,18 @@ export default function RegisterPage() {
             </div>
 
             <div className="text-center space-y-2">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Already have an account?{' '}
                 <Link
                   href="/auth/login"
-                  className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                  className="font-semibold text-primary hover:text-primary/80 transition-colors"
                 >
                   Sign in
                 </Link>
               </p>
               <Link
                 href="/"
-                className="inline-flex items-center space-x-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                className="inline-flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <span>←</span>
                 <span>Back to dashboard</span>
@@ -190,4 +190,3 @@ export default function RegisterPage() {
     </div>
   )
 }
-

@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  passwordHash String
+  createdAt DateTime @default(now())
+  scans     Scan[]
+}
+
+model Scan {
+  id          String    @id @default(cuid())
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url         String
+  riskScore   Int
+  riskLevel   RiskLevel
+  status      ScanStatus @default(PENDING)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  findings    Finding[]
+}
+
+model Finding {
+  id       String      @id @default(cuid())
+  scanId   String
+  scan     Scan        @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  type     FindingType
+  title    String
+  severity Severity
+  passed   Boolean
+  details  String?     @db.Text
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ScanStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum FindingType {
+  HEADER
+  SSL
+  PORT
+  OTHER
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+

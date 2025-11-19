@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getSession()
     
-    if (!session || !session.orgId) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const schedule = await prisma.scanSchedule.create({
       data: {
-        orgId: session.orgId,
+        orgId: null, // No longer using orgs
         userId: session.userId,
         url,
         frequency,
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getSession()
     
-    if (!session || !session.orgId) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     const schedules = await prisma.scanSchedule.findMany({
       where: {
-        orgId: session.orgId,
+        userId: session.userId,
       },
       orderBy: {
         nextRunAt: 'asc',

@@ -17,7 +17,7 @@ export async function PATCH(
   try {
     const session = await getSession()
     
-    if (!session || !session.orgId) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -27,12 +27,12 @@ export async function PATCH(
     const body = await request.json()
     const updates = updateSchema.parse(body)
 
-    // Verify schedule belongs to org
+    // Verify schedule belongs to user
     const schedule = await prisma.scanSchedule.findUnique({
       where: { id: params.id },
     })
 
-    if (!schedule || schedule.orgId !== session.orgId) {
+    if (!schedule || schedule.userId !== session.userId) {
       return NextResponse.json(
         { error: 'Schedule not found' },
         { status: 404 }
@@ -75,19 +75,19 @@ export async function DELETE(
   try {
     const session = await getSession()
     
-    if (!session || !session.orgId) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    // Verify schedule belongs to org
+    // Verify schedule belongs to user
     const schedule = await prisma.scanSchedule.findUnique({
       where: { id: params.id },
     })
 
-    if (!schedule || schedule.orgId !== session.orgId) {
+    if (!schedule || schedule.userId !== session.userId) {
       return NextResponse.json(
         { error: 'Schedule not found' },
         { status: 404 }
@@ -131,4 +131,3 @@ function calculateNextRun(frequency: string): Date {
 
   return next
 }
-

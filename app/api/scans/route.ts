@@ -4,7 +4,12 @@ import { scanUrl } from '@/lib/scanner'
 import { getSession } from '@/lib/session'
 import { z } from 'zod'
 
-async function checkAndSendAlerts(orgId: string, scanId: string, riskLevel: string) {
+const scanSchema = z.object({
+  url: z.string().url('Invalid URL format'),
+  scheduleId: z.string().optional(),
+})
+
+async function checkAndSendAlerts(userId: string, scanId: string, riskLevel: string) {
   try {
     const scan = await prisma.scan.findUnique({
       where: { id: scanId },
@@ -41,11 +46,6 @@ async function checkAndSendAlerts(orgId: string, scanId: string, riskLevel: stri
   }
 }
 
-const scanSchema = z.object({
-  url: z.string().url('Invalid URL format'),
-  scheduleId: z.string().optional(),
-})
-
 // POST /api/scans - Create and run a new scan
 export async function POST(request: NextRequest) {
   try {
@@ -59,33 +59,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { url, scheduleId } = scanSchema.extend({
-      scheduleId: z.string().optional(),
-    }).parse(body)
-
-    // If no orgId in session, get user's first org
-    let orgId = session.orgId
-    if (!orgId) {
-      const { getUserOrgs } = await import('@/lib/org')
-      const orgs = await getUserOrgs(session.userId)
-      if (orgs.length === 0) {
-        return NextResponse.json(
-          { error: 'No organization found. Please contact support.' },
-          { status: 400 }
-        )
-      }
-      orgId = orgs[0].id
-      // Update session with orgId
-      const { updateSessionOrg } = await import('@/lib/session')
-      await updateSessionOrg(orgId)
-    }
+    const { url, scheduleId } = scanSchema.parse(body)
 
     // Create scan with PENDING status
     const scan = await prisma.scan.create({
       data: {
         url,
         userId: session.userId,
-        orgId: orgId,
+        orgId: null,
         scheduleId: scheduleId || null,
         riskScore: 0,
         riskLevel: 'LOW',
@@ -127,6 +108,9 @@ export async function POST(request: NextRequest) {
           findings: true,
         },
       })
+
+      // Check and send alerts
+      await checkAndSendAlerts(session.userId, scan.id, result.riskLevel)
 
       return NextResponse.json(completeScan, { status: 201 })
     } catch (error) {
@@ -171,26 +155,9 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
 
-    // If no orgId in session, get user's first org
-    let orgId = session.orgId
-    if (!orgId) {
-      const { getUserOrgs } = await import('@/lib/org')
-      const orgs = await getUserOrgs(session.userId)
-      if (orgs.length === 0) {
-        return NextResponse.json(
-          { error: 'No organization found' },
-          { status: 400 }
-        )
-      }
-      orgId = orgs[0].id
-      // Update session with orgId
-      const { updateSessionOrg } = await import('@/lib/session')
-      await updateSessionOrg(orgId)
-    }
-
-    // Build where clause
+    // Build where clause - filter by userId instead of orgId
     const where: any = {
-      orgId: orgId,
+      userId: session.userId,
     }
 
     if (riskLevel && ['LOW', 'MEDIUM', 'HIGH'].includes(riskLevel)) {
@@ -246,4 +213,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-

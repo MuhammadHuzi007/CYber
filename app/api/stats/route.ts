@@ -13,44 +13,29 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // If no orgId in session, get user's first org
-    let orgId = session.orgId
-    if (!orgId) {
-      const { getUserOrgs } = await import('@/lib/org')
-      const orgs = await getUserOrgs(session.userId)
-      if (orgs.length === 0) {
-        return NextResponse.json(
-          { error: 'No organization found' },
-          { status: 400 }
-        )
-      }
-      orgId = orgs[0].id
-      // Update session with orgId
-      const { updateSessionOrg } = await import('@/lib/session')
-      await updateSessionOrg(orgId)
-    }
+    const userId = session.userId
 
     // Get total scans
     const totalScans = await prisma.scan.count({
-      where: { orgId },
+      where: { userId },
     })
 
     // Get scans by risk level
     const byRisk = {
       LOW: await prisma.scan.count({
-        where: { orgId, riskLevel: 'LOW' },
+        where: { userId, riskLevel: 'LOW' },
       }),
       MEDIUM: await prisma.scan.count({
-        where: { orgId, riskLevel: 'MEDIUM' },
+        where: { userId, riskLevel: 'MEDIUM' },
       }),
       HIGH: await prisma.scan.count({
-        where: { orgId, riskLevel: 'HIGH' },
+        where: { userId, riskLevel: 'HIGH' },
       }),
     }
 
     // Get recent scans (last 5)
     const recentScans = await prisma.scan.findMany({
-      where: { orgId },
+      where: { userId },
       orderBy: { startedAt: 'desc' },
       take: 5,
       select: {
@@ -76,4 +61,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-

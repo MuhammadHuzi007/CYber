@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
           data: {
             url: schedule.url,
             userId: schedule.userId,
-            orgId: schedule.orgId,
+            orgId: null,
             scheduleId: schedule.id,
             riskScore: 0,
             riskLevel: 'LOW',
@@ -81,8 +81,8 @@ export async function GET(request: NextRequest) {
           },
         })
 
-        // Check for alerts (we'll implement this next)
-        await checkAndSendAlerts(schedule.orgId, scan.id, result.riskLevel)
+        // Check for alerts
+        await checkAndSendAlerts(schedule.userId, scan.id, result.riskLevel)
 
         results.push({
           scheduleId: schedule.id,

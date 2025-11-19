@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createUser, getUserByEmail } from '@/lib/auth'
-import { createDefaultOrgForUser } from '@/lib/org'
 import { z } from 'zod'
 
 const registerSchema = z.object({
@@ -24,9 +23,6 @@ export async function POST(request: NextRequest) {
 
     // Create user
     const user = await createUser(email, password)
-
-    // Create default organization for user
-    await createDefaultOrgForUser(user.id, email)
 
     return NextResponse.json(
       { id: user.id, email: user.email },

@@ -91,7 +91,7 @@ export default function AlertSettingsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
             <div className="flex items-center">
-              <Link href="/" className="flex items-center space-x-3 group">
+              <Link href="/dashboard" className="flex items-center space-x-3 group">
                 <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center shadow-lg">
                   <span className="text-white text-xl font-bold">🔒</span>
                 </div>
@@ -104,7 +104,7 @@ export default function AlertSettingsPage() {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium">
+              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium">
                 Dashboard
               </Link>
               <Link href="/schedules" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium">

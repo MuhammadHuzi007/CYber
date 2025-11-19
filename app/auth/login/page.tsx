@@ -31,9 +31,8 @@ export default function LoginPage() {
       }
 
       const user = await response.json()
-      // In a production app, you'd store the session/token here
-      // For MVP, we'll just redirect
-      router.push('/')
+      // Redirect to dashboard after login
+      router.push('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {

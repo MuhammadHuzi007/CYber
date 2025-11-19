@@ -6,13 +6,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/auth/login', '/auth/register', '/api/auth']
+  const publicRoutes = ['/', '/auth/login', '/auth/register', '/api/auth']
   
   // API routes that don't require authentication
   const publicApiRoutes = ['/api/auth/login', '/api/auth/register']
 
   // Check if it's a public route
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  if (publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
     return NextResponse.next()
   }
 
@@ -21,8 +21,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Protect dashboard and scan routes
-  if (pathname === '/' || pathname.startsWith('/scans') || pathname.startsWith('/api/scans')) {
+  // Protect dashboard, scans, schedules, and settings routes
+  if (pathname.startsWith('/dashboard') || 
+      pathname.startsWith('/scans') || 
+      pathname.startsWith('/schedules') ||
+      pathname.startsWith('/settings') ||
+      pathname.startsWith('/api/scans') ||
+      pathname.startsWith('/api/schedules') ||
+      pathname.startsWith('/api/stats') ||
+      pathname.startsWith('/api/settings')) {
     if (!session) {
       if (pathname.startsWith('/api')) {
         return NextResponse.json(

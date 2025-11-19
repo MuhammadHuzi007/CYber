@@ -1,175 +1,27 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-interface Scan {
-  id: string
-  url: string
-  riskScore: number
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
-  status: 'PENDING' | 'COMPLETED' | 'FAILED'
-  startedAt: string
-}
-
-interface Stats {
-  totalScans: number
-  byRisk: {
-    LOW: number
-    MEDIUM: number
-    HIGH: number
-  }
-  recentScans: Scan[]
-}
-
-export default function Dashboard() {
+export default function HomePage() {
   const router = useRouter()
-  const [url, setUrl] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [scans, setScans] = useState<Scan[]>([])
-  const [stats, setStats] = useState<Stats | null>(null)
-  const [error, setError] = useState('')
-  const [user, setUser] = useState<{ id: string; email: string } | null>(null)
-  
-  // Filters
-  const [riskFilter, setRiskFilter] = useState<string>('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
 
   useEffect(() => {
     checkAuth()
   }, [])
 
-  useEffect(() => {
-    if (user) {
-      fetchStats()
-      fetchScans()
-    }
-  }, [user])
-
-  useEffect(() => {
-    fetchScans()
-  }, [riskFilter, searchQuery, dateFrom, dateTo])
-
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/me')
-      if (response.ok) {
-        const userData = await response.json()
-        setUser(userData)
-      } else {
-        router.push('/auth/login')
-      }
+      setIsLoggedIn(response.ok)
     } catch (err) {
-      router.push('/auth/login')
+      setIsLoggedIn(false)
     }
   }
 
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-      router.push('/auth/login')
-    } catch (err) {
-      console.error('Logout error:', err)
-    }
-  }
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('/api/stats')
-      if (response.ok) {
-        const data = await response.json()
-        setStats(data)
-      }
-    } catch (err) {
-      console.error('Error fetching stats:', err)
-    }
-  }
-
-  const fetchScans = async () => {
-    try {
-      const params = new URLSearchParams()
-      if (riskFilter) params.append('riskLevel', riskFilter)
-      if (searchQuery) params.append('q', searchQuery)
-      if (dateFrom) params.append('from', dateFrom)
-      if (dateTo) params.append('to', dateTo)
-
-      const response = await fetch(`/api/scans?${params.toString()}`)
-      if (response.ok) {
-        const data = await response.json()
-        setScans(data.scans || [])
-      }
-    } catch (err) {
-      console.error('Error fetching scans:', err)
-    }
-  }
-
-  const handleScan = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    try {
-      const response = await fetch('/api/scans', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to start scan')
-      }
-
-      setUrl('')
-      fetchScans() // Refresh the list
-      fetchStats() // Refresh stats
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const clearFilters = () => {
-    setRiskFilter('')
-    setSearchQuery('')
-    setDateFrom('')
-    setDateTo('')
-  }
-
-  const getRiskColor = (level: string) => {
-    switch (level) {
-      case 'HIGH':
-        return 'bg-red-50 text-red-700 border-red-300 shadow-sm'
-      case 'MEDIUM':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-300 shadow-sm'
-      case 'LOW':
-        return 'bg-green-50 text-green-700 border-green-300 shadow-sm'
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-300 shadow-sm'
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'text-green-600 bg-green-50'
-      case 'FAILED':
-        return 'text-red-600 bg-red-50'
-      case 'PENDING':
-        return 'text-yellow-600 bg-yellow-50'
-      default:
-        return 'text-gray-600 bg-gray-50'
-    }
-  }
-
-  if (!user) {
+  if (isLoggedIn === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -197,357 +49,346 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">{user.email}</span>
-              <Link
-                href="/schedules"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
-              >
-                Schedules
-              </Link>
-              <Link
-                href="/settings/alerts"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
-              >
-                Alerts
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
-              >
-                Logout
-              </button>
+              {isLoggedIn ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      await fetch('/api/auth/logout', { method: 'POST' })
+                      router.push('/')
+                      setIsLoggedIn(false)
+                    }}
+                    className="gradient-bg text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="gradient-bg text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-xl transition-all"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Stats Section */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Scans</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalScans}</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">📊</span>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Low Risk</p>
-                  <p className="text-3xl font-bold text-green-600">{stats.byRisk.LOW}</p>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">✅</span>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Medium Risk</p>
-                  <p className="text-3xl font-bold text-yellow-600">{stats.byRisk.MEDIUM}</p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">⚠️</span>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">High Risk</p>
-                  <p className="text-3xl font-bold text-red-600">{stats.byRisk.HIGH}</p>
-                </div>
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">🔴</span>
-                </div>
-              </div>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden py-20 sm:py-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 mb-6 animate-fade-in">
+              Secure Your Digital
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Assets</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto animate-slide-up">
+              Comprehensive security scanning for vulnerabilities, headers, SSL, XSS, and open ports.
+              Protect your websites with enterprise-grade security analysis.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-slide-up">
+              {!isLoggedIn ? (
+                <>
+                  <Link
+                    href="/auth/register"
+                    className="gradient-bg text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                  >
+                    Start Scanning Free
+                  </Link>
+                  <Link
+                    href="/auth/login"
+                    className="bg-white text-gray-900 px-8 py-4 rounded-xl font-semibold text-lg border-2 border-gray-200 hover:border-gray-300 transition-all"
+                  >
+                    Sign In
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  href="/dashboard"
+                  className="gradient-bg text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  Go to Dashboard
+                </Link>
+              )}
             </div>
           </div>
-        )}
+        </div>
+      </section>
 
-        {/* Scan Form */}
-        <div className="mb-12">
-          <div className="text-center mb-8 animate-fade-in">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
-              Secure Your Digital Assets
+      {/* Features Section */}
+      <section className="py-20 bg-gray-50/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Powerful Security Features
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Comprehensive security scanning for vulnerabilities, headers, SSL, and open ports
+              Everything you need to identify and fix security vulnerabilities
             </p>
           </div>
-          
-          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 mb-8 card-hover animate-slide-up">
-            <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-green-500 rounded-full pulse-ring"></div>
-              <h3 className="text-2xl font-bold text-gray-900">New Security Scan</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Feature 1 */}
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 card-hover">
+              <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
+                <span className="text-3xl">🛡️</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Security Headers</h3>
+              <p className="text-gray-600">
+                Check for critical security headers like CSP, X-Frame-Options, HSTS, and more. 
+                Validate header quality, not just presence.
+              </p>
             </div>
-            <form onSubmit={handleScan} className="space-y-6">
-              <div>
-                <label
-                  htmlFor="url"
-                  className="block text-sm font-semibold text-gray-700 mb-3"
-                >
-                  Enter URL to scan
-                </label>
-                <div className="flex gap-3">
-                  <div className="flex-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <span className="text-gray-400 text-lg">🌐</span>
-                    </div>
-                    <input
-                      type="text"
-                      id="url"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder="https://example.com"
-                      className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400"
-                      required
-                    />
+
+            {/* Feature 2 */}
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 card-hover">
+              <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mb-6">
+                <span className="text-3xl">🔐</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">SSL/TLS Analysis</h3>
+              <p className="text-gray-600">
+                Verify HTTPS implementation and SSL certificate validity. 
+                Detect mixed content and insecure connections.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 card-hover">
+              <div className="w-16 h-16 bg-red-100 rounded-xl flex items-center justify-center mb-6">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">XSS Detection</h3>
+              <p className="text-gray-600">
+                Identify XSS vulnerabilities by detecting inline scripts, event handlers, 
+                and reflected input. Advanced probing for reflected XSS.
+              </p>
+            </div>
+
+            {/* Feature 4 */}
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 card-hover">
+              <div className="w-16 h-16 bg-yellow-100 rounded-xl flex items-center justify-center mb-6">
+                <span className="text-3xl">🔌</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Port Scanning</h3>
+              <p className="text-gray-600">
+                Detect open ports that may expose sensitive services. 
+                Identify suspicious ports like FTP, SSH, and database ports.
+              </p>
+            </div>
+
+            {/* Feature 5 */}
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 card-hover">
+              <div className="w-16 h-16 bg-purple-100 rounded-xl flex items-center justify-center mb-6">
+                <span className="text-3xl">📊</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Risk Scoring</h3>
+              <p className="text-gray-600">
+                Get comprehensive risk scores with detailed breakdowns. 
+                Understand your security posture with actionable insights.
+              </p>
+            </div>
+
+            {/* Feature 6 */}
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 card-hover">
+              <div className="w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center mb-6">
+                <span className="text-3xl">📄</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">PDF Reports</h3>
+              <p className="text-gray-600">
+                Download detailed PDF reports with all findings, risk scores, 
+                and recommendations. Perfect for compliance and documentation.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Additional Features */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Advanced Vulnerability Detection
+              </h2>
+              <ul className="space-y-4">
+                <li className="flex items-start space-x-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Directory Listing Detection</h4>
+                    <p className="text-gray-600">Identify exposed directory listings on common paths</p>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="gradient-bg text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 flex items-center space-x-2 min-w-[140px] justify-center"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                        <span>Scanning...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>🔍</span>
-                        <span>Scan Now</span>
-                      </>
-                    )}
-                  </button>
+                </li>
+                <li className="flex items-start space-x-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">HTTP Methods Enumeration</h4>
+                    <p className="text-gray-600">Detect unsafe HTTP methods like PUT, DELETE, TRACE</p>
+                  </div>
+                </li>
+                <li className="flex items-start space-x-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">SQL Injection Probing</h4>
+                    <p className="text-gray-600">Test for SQL injection vulnerabilities in query parameters</p>
+                  </div>
+                </li>
+                <li className="flex items-start space-x-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Tech Fingerprinting</h4>
+                    <p className="text-gray-600">Identify exposed technology stack and versions</p>
+                  </div>
+                </li>
+                <li className="flex items-start space-x-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Scheduled Scans</h4>
+                    <p className="text-gray-600">Automate security scans with daily, weekly, or monthly schedules</p>
+                  </div>
+                </li>
+                <li className="flex items-start space-x-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Email Alerts</h4>
+                    <p className="text-gray-600">Get notified when high-risk vulnerabilities are detected</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-3xl p-12 border-2 border-blue-200">
+              <div className="space-y-6">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+                    <span className="text-white text-2xl">🔍</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">Real-time Scanning</h3>
+                    <p className="text-gray-600">Get results in seconds</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center">
+                    <span className="text-white text-2xl">📈</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">Comprehensive Reports</h3>
+                    <p className="text-gray-600">Detailed findings with actionable recommendations</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center">
+                    <span className="text-white text-2xl">🔔</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">Smart Alerts</h3>
+                    <p className="text-gray-600">Stay informed about security issues</p>
+                  </div>
                 </div>
               </div>
-              {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg flex items-center space-x-2 animate-fade-in">
-                  <span>⚠️</span>
-                  <span>{error}</span>
-                </div>
-              )}
-            </form>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* Filters */}
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900">Filters</h3>
-            <button
-              onClick={clearFilters}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Clear all
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Risk Level
-              </label>
-              <select
-                value={riskFilter}
-                onChange={(e) => setRiskFilter(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            Ready to Secure Your Websites?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Start scanning your websites for vulnerabilities today. 
+            Get instant results and actionable security insights.
+          </p>
+          {!isLoggedIn ? (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/auth/register"
+                className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
               >
-                <option value="">All</option>
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-              </select>
+                Create Free Account
+              </Link>
+              <Link
+                href="/auth/login"
+                className="bg-blue-700 text-white px-8 py-4 rounded-xl font-semibold text-lg border-2 border-blue-500 hover:bg-blue-800 transition-all"
+              >
+                Sign In
+              </Link>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search URL
-              </label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by URL..."
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                From Date
-              </label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                To Date
-              </label>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </div>
+          ) : (
+            <Link
+              href="/dashboard"
+              className="inline-block bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            >
+              Go to Dashboard
+            </Link>
+          )}
         </div>
+      </section>
 
-        {/* Scan History */}
-        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-200/50 bg-gradient-to-r from-gray-50 to-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="text-blue-600 text-xl">📊</span>
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-300 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center">
+                  <span className="text-white text-xl font-bold">🔒</span>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Scan History</h2>
-                  <p className="text-sm text-gray-500">View all your security scans</p>
-                </div>
+                <h3 className="text-xl font-bold text-white">Vulnerability Scanner</h3>
               </div>
-              <div className="text-sm text-gray-500">
-                {scans.length} {scans.length === 1 ? 'scan' : 'scans'}
-              </div>
+              <p className="text-gray-400">
+                Enterprise-grade security scanning for your websites and applications.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Features</h4>
+              <ul className="space-y-2">
+                <li><Link href="/dashboard" className="hover:text-white transition-colors">Security Scanning</Link></li>
+                <li><Link href="/dashboard" className="hover:text-white transition-colors">Risk Analysis</Link></li>
+                <li><Link href="/dashboard" className="hover:text-white transition-colors">PDF Reports</Link></li>
+                <li><Link href="/dashboard" className="hover:text-white transition-colors">Scheduled Scans</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Account</h4>
+              <ul className="space-y-2">
+                {isLoggedIn ? (
+                  <>
+                    <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
+                    <li><Link href="/schedules" className="hover:text-white transition-colors">Schedules</Link></li>
+                    <li><Link href="/settings/alerts" className="hover:text-white transition-colors">Settings</Link></li>
+                  </>
+                ) : (
+                  <>
+                    <li><Link href="/auth/login" className="hover:text-white transition-colors">Login</Link></li>
+                    <li><Link href="/auth/register" className="hover:text-white transition-colors">Register</Link></li>
+                  </>
+                )}
+              </ul>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200/50">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50">
-                <tr>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    URL
-                  </th>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Risk Score
-                  </th>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Risk Level
-                  </th>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200/50">
-                {scans.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-8 py-16 text-center"
-                    >
-                      <div className="flex flex-col items-center space-y-4">
-                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                          <span className="text-4xl">🔍</span>
-                        </div>
-                        <div>
-                          <p className="text-gray-500 font-medium">No scans found</p>
-                          <p className="text-sm text-gray-400 mt-1">Start by scanning a URL above</p>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  scans.map((scan, index) => (
-                    <tr 
-                      key={scan.id} 
-                      className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-200"
-                    >
-                      <td className="px-8 py-5 whitespace-nowrap">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <div className="text-sm font-semibold text-gray-900 max-w-xs truncate">
-                            {scan.url}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">
-                          {new Date(scan.startedAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          {new Date(scan.startedAt).toLocaleTimeString('en-US', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          <div className="text-lg font-bold text-gray-900">
-                            {scan.riskScore}
-                          </div>
-                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${
-                                scan.riskLevel === 'HIGH' ? 'bg-red-500' :
-                                scan.riskLevel === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'
-                              }`}
-                              style={{ width: `${Math.min((scan.riskScore / 10) * 100, 100)}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 whitespace-nowrap">
-                        <span
-                          className={`px-3 py-1.5 text-xs font-bold rounded-full border-2 ${getRiskColor(
-                            scan.riskLevel
-                          )} shadow-sm`}
-                        >
-                          {scan.riskLevel}
-                        </span>
-                      </td>
-                      <td className="px-8 py-5 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${getStatusColor(
-                            scan.status
-                          )}`}
-                        >
-                          <span className={`w-2 h-2 rounded-full mr-2 ${
-                            scan.status === 'COMPLETED' ? 'bg-green-500' :
-                            scan.status === 'FAILED' ? 'bg-red-500' : 'bg-yellow-500'
-                          }`}></span>
-                          {scan.status}
-                        </span>
-                      </td>
-                      <td className="px-8 py-5 whitespace-nowrap text-sm font-medium">
-                        <Link
-                          href={`/scans/${scan.id}`}
-                          className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors"
-                        >
-                          <span>View Details</span>
-                          <span>→</span>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
+            <p>&copy; {new Date().getFullYear()} Vulnerability Scanner. All rights reserved.</p>
           </div>
         </div>
-      </main>
+      </footer>
     </div>
   )
 }

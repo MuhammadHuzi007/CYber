@@ -59,8 +59,11 @@ model Scan {
   riskScore   Int
   riskLevel   RiskLevel
   status      ScanStatus @default(PENDING)
+  scanType    ScanType  @default(STANDARD)
+  progress    Int       @default(0) // 0-100
   startedAt   DateTime  @default(now())
   completedAt DateTime?
+  duration    Int?      // Duration in seconds
   findings    Finding[]
   scheduleId  String?
   schedule    ScanSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
@@ -85,8 +88,16 @@ enum RiskLevel {
 
 enum ScanStatus {
   PENDING
+  RUNNING
   COMPLETED
   FAILED
+}
+
+enum ScanType {
+  QUICK
+  STANDARD
+  DEEP
+  CUSTOM
 }
 
 enum FindingType {

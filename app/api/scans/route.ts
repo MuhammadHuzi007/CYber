@@ -7,6 +7,8 @@ import { z } from 'zod'
 const scanSchema = z.object({
   url: z.string().url('Invalid URL format'),
   scheduleId: z.string().optional(),
+  scanType: z.enum(['QUICK', 'STANDARD', 'DEEP', 'CUSTOM']).optional().default('STANDARD'),
+  customChecks: z.array(z.string()).optional(),
 })
 
 async function checkAndSendAlerts(userId: string, scanId: string, riskLevel: string) {
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { url, scheduleId } = scanSchema.parse(body)
+    const { url, scheduleId, scanType, customChecks } = scanSchema.parse(body)
 
     // Create scan with PENDING status
     const scan = await prisma.scan.create({
@@ -71,12 +73,38 @@ export async function POST(request: NextRequest) {
         riskScore: 0,
         riskLevel: 'LOW',
         status: 'PENDING',
+        scanType: scanType || 'STANDARD',
+        progress: 0,
       },
     })
 
-    // Run scan in background (for MVP, we'll do it synchronously)
+    // Update status to RUNNING
+    await prisma.scan.update({
+      where: { id: scan.id },
+      data: { status: 'RUNNING' },
+    })
+
+    // Progress callback to update database
+    let lastProgressUpdate = 0
+    const updateProgress = async (progress: number, currentCheck: string) => {
+      // Update every 5% or every 2 seconds
+      const now = Date.now()
+      if (progress - lastProgressUpdate >= 5 || now - lastProgressUpdate >= 2000) {
+        await prisma.scan.update({
+          where: { id: scan.id },
+          data: { progress },
+        })
+        lastProgressUpdate = progress
+      }
+    }
+
+    // Run scan with progress tracking
     try {
-      const result = await scanUrl(url)
+      const result = await scanUrl(url, {
+        scanType: scanType || 'STANDARD',
+        customChecks: customChecks || [],
+        onProgress: updateProgress,
+      })
 
       // Update scan with results
       const updatedScan = await prisma.scan.update({
@@ -86,6 +114,8 @@ export async function POST(request: NextRequest) {
           riskLevel: result.riskLevel,
           status: 'COMPLETED',
           completedAt: new Date(),
+          progress: 100,
+          duration: result.duration,
         },
       })
 

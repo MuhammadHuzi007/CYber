@@ -9,8 +9,12 @@ interface Scan {
   url: string
   riskScore: number
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
-  status: 'PENDING' | 'COMPLETED' | 'FAILED'
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
+  scanType?: 'QUICK' | 'STANDARD' | 'DEEP' | 'CUSTOM'
+  progress?: number
+  duration?: number
   startedAt: string
+  completedAt?: string
 }
 
 interface Stats {
@@ -31,6 +35,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [error, setError] = useState('')
   const [user, setUser] = useState<{ id: string; email: string } | null>(null)
+  const [scanType, setScanType] = useState<'QUICK' | 'STANDARD' | 'DEEP'>('STANDARD')
+  const [scanProgress, setScanProgress] = useState<{ progress: number; currentCheck: string } | null>(null)
+  const [scanningScanId, setScanningScanId] = useState<string | null>(null)
   
   // Filters
   const [riskFilter, setRiskFilter] = useState<string>('')
@@ -110,6 +117,7 @@ export default function Dashboard() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setScanProgress({ progress: 0, currentCheck: 'Initializing...' })
 
     try {
       const response = await fetch('/api/scans', {
@@ -117,7 +125,7 @@ export default function Dashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, scanType }),
       })
 
       if (!response.ok) {
@@ -125,11 +133,44 @@ export default function Dashboard() {
         throw new Error(data.error || 'Failed to start scan')
       }
 
+      const scanData = await response.json()
+      setScanningScanId(scanData.id)
       setUrl('')
-      fetchScans() // Refresh the list
-      fetchStats() // Refresh stats
+
+      // Poll for progress updates
+      const progressInterval = setInterval(async () => {
+        try {
+          const progressResponse = await fetch(`/api/scans/${scanData.id}`)
+          if (progressResponse.ok) {
+            const scan = await progressResponse.json()
+            if (scan.status === 'RUNNING') {
+              setScanProgress({ 
+                progress: scan.progress || 0, 
+                currentCheck: `Scanning... ${scan.progress || 0}%` 
+              })
+            } else if (scan.status === 'COMPLETED' || scan.status === 'FAILED') {
+              clearInterval(progressInterval)
+              setScanProgress(null)
+              setScanningScanId(null)
+              fetchScans()
+              fetchStats()
+            }
+          }
+        } catch (err) {
+          // Ignore errors
+        }
+      }, 1000) // Poll every second
+
+      // Cleanup interval after 5 minutes
+      setTimeout(() => {
+        clearInterval(progressInterval)
+        setScanProgress(null)
+        setScanningScanId(null)
+      }, 300000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
+      setScanProgress(null)
+      setScanningScanId(null)
     } finally {
       setLoading(false)
     }
@@ -308,6 +349,7 @@ export default function Dashboard() {
                       placeholder="https://example.com"
                       className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400"
                       required
+                      disabled={loading}
                     />
                   </div>
                   <button
@@ -329,6 +371,72 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
+              
+              <div>
+                <label
+                  htmlFor="scanType"
+                  className="block text-sm font-semibold text-gray-700 mb-3"
+                >
+                  Scan Type
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setScanType('QUICK')}
+                    disabled={loading}
+                    className={`px-4 py-3 rounded-xl font-medium transition-all ${
+                      scanType === 'QUICK'
+                        ? 'gradient-bg text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <div className="text-sm font-bold">⚡ Quick</div>
+                    <div className="text-xs opacity-80">Basic checks (~30s)</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScanType('STANDARD')}
+                    disabled={loading}
+                    className={`px-4 py-3 rounded-xl font-medium transition-all ${
+                      scanType === 'STANDARD'
+                        ? 'gradient-bg text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <div className="text-sm font-bold">🔍 Standard</div>
+                    <div className="text-xs opacity-80">Comprehensive (~2min)</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScanType('DEEP')}
+                    disabled={loading}
+                    className={`px-4 py-3 rounded-xl font-medium transition-all ${
+                      scanType === 'DEEP'
+                        ? 'gradient-bg text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <div className="text-sm font-bold">🔬 Deep</div>
+                    <div className="text-xs opacity-80">Full analysis (~5min)</div>
+                  </button>
+                </div>
+              </div>
+
+              {scanProgress && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-blue-900">{scanProgress.currentCheck}</span>
+                    <span className="text-sm font-bold text-blue-700">{scanProgress.progress}%</span>
+                  </div>
+                  <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="gradient-bg h-full transition-all duration-300 ease-out"
+                      style={{ width: `${scanProgress.progress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
               {error && (
                 <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg flex items-center space-x-2 animate-fade-in">
                   <span>⚠️</span>
@@ -491,6 +599,16 @@ export default function Dashboard() {
                             minute: '2-digit'
                           })}
                         </div>
+                        {scan.duration && (
+                          <div className="text-xs text-blue-600 mt-1 font-medium">
+                            ⏱️ {scan.duration}s
+                          </div>
+                        )}
+                        {scan.scanType && (
+                          <div className="text-xs text-purple-600 mt-1 font-medium">
+                            {scan.scanType}
+                          </div>
+                        )}
                       </td>
                       <td className="px-8 py-5 whitespace-nowrap">
                         <div className="flex items-center space-x-2">

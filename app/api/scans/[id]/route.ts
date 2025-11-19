@@ -36,8 +36,8 @@ export async function GET(
       )
     }
 
-    // Verify the scan belongs to the user
-    if (scan.userId !== session.userId) {
+    // Verify the scan belongs to the org
+    if (!session.orgId || scan.orgId !== session.orgId) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }

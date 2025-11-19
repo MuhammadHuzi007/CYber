@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyUser } from '@/lib/auth'
 import { createSession } from '@/lib/session'
+import { getUserOrgs } from '@/lib/org'
 import { z } from 'zod'
 
 const loginSchema = z.object({
@@ -21,12 +22,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create session
-    await createSession(user.id)
+    // Get user's orgs and use the first one as default
+    const orgs = await getUserOrgs(user.id)
+    const defaultOrgId = orgs.length > 0 ? orgs[0].id : undefined
+
+    // Create session with default org
+    await createSession(user.id, defaultOrgId)
 
     return NextResponse.json({
       id: user.id,
       email: user.email,
+      orgId: defaultOrgId,
     })
   } catch (error) {
     console.error('Login error:', error)

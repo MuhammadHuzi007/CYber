@@ -31,6 +31,8 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [error, setError] = useState('')
   const [user, setUser] = useState<{ id: string; email: string } | null>(null)
+  const [orgs, setOrgs] = useState<Array<{ id: string; name: string; slug: string }>>([])
+  const [currentOrg, setCurrentOrg] = useState<{ id: string; name: string } | null>(null)
   
   // Filters
   const [riskFilter, setRiskFilter] = useState<string>('')
@@ -40,9 +42,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     checkAuth()
-    fetchStats()
-    fetchScans()
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      fetchOrgs()
+      fetchStats()
+      fetchScans()
+    }
+  }, [user, currentOrg])
 
   useEffect(() => {
     fetchScans()
@@ -59,6 +67,43 @@ export default function Dashboard() {
       }
     } catch (err) {
       router.push('/auth/login')
+    }
+  }
+
+  const fetchOrgs = async () => {
+    try {
+      const response = await fetch('/api/orgs')
+      if (response.ok) {
+        const data = await response.json()
+        setOrgs(data.orgs || [])
+        if (data.orgs && data.orgs.length > 0 && !currentOrg) {
+          setCurrentOrg({ id: data.orgs[0].id, name: data.orgs[0].name })
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching orgs:', err)
+    }
+  }
+
+  const handleOrgSwitch = async (orgId: string) => {
+    try {
+      const response = await fetch('/api/orgs/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId }),
+      })
+
+      if (response.ok) {
+        const org = orgs.find(o => o.id === orgId)
+        if (org) {
+          setCurrentOrg({ id: org.id, name: org.name })
+          // Refresh data for new org
+          fetchStats()
+          fetchScans()
+        }
+      }
+    } catch (err) {
+      console.error('Error switching org:', err)
     }
   }
 
@@ -191,7 +236,32 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {orgs.length > 0 && (
+                <select
+                  value={currentOrg?.id || ''}
+                  onChange={(e) => handleOrgSwitch(e.target.value)}
+                  className="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {orgs.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              )}
               <span className="text-sm text-gray-600">{user.email}</span>
+              <Link
+                href="/schedules"
+                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+              >
+                Schedules
+              </Link>
+              <Link
+                href="/settings/alerts"
+                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+              >
+                Alerts
+              </Link>
               <button
                 onClick={handleLogout}
                 className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"

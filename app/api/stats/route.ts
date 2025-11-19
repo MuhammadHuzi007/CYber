@@ -13,29 +13,36 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const userId = session.userId
+    if (!session.orgId) {
+      return NextResponse.json(
+        { error: 'No organization selected' },
+        { status: 400 }
+      )
+    }
+
+    const orgId = session.orgId
 
     // Get total scans
     const totalScans = await prisma.scan.count({
-      where: { userId },
+      where: { orgId },
     })
 
     // Get scans by risk level
     const byRisk = {
       LOW: await prisma.scan.count({
-        where: { userId, riskLevel: 'LOW' },
+        where: { orgId, riskLevel: 'LOW' },
       }),
       MEDIUM: await prisma.scan.count({
-        where: { userId, riskLevel: 'MEDIUM' },
+        where: { orgId, riskLevel: 'MEDIUM' },
       }),
       HIGH: await prisma.scan.count({
-        where: { userId, riskLevel: 'HIGH' },
+        where: { orgId, riskLevel: 'HIGH' },
       }),
     }
 
     // Get recent scans (last 5)
     const recentScans = await prisma.scan.findMany({
-      where: { userId },
+      where: { orgId },
       orderBy: { startedAt: 'desc' },
       take: 5,
       select: {

@@ -11,17 +11,50 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id           String      @id @default(cuid())
+  email        String      @unique
   passwordHash String
-  createdAt DateTime @default(now())
-  scans     Scan[]
+  createdAt    DateTime    @default(now())
+  scans        Scan[]
+  orgMembers   OrgMember[]
+  alertSettings AlertSettings?
+}
+
+model Organization {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  createdAt   DateTime    @default(now())
+  members     OrgMember[]
+  scans       Scan[]
+  schedules   ScanSchedule[]
+  alertRules  AlertRule[]
+}
+
+model OrgMember {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgId          String
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  role           OrgRole      @default(MEMBER)
+  createdAt      DateTime     @default(now())
+  
+  @@unique([userId, orgId])
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
 }
 
 model Scan {
   id          String    @id @default(cuid())
   userId      String?
   user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgId       String?
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   url         String
   riskScore   Int
   riskLevel   RiskLevel
@@ -29,6 +62,8 @@ model Scan {
   startedAt   DateTime  @default(now())
   completedAt DateTime?
   findings    Finding[]
+  scheduleId  String?
+  schedule    ScanSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
 }
 
 model Finding {
@@ -67,5 +102,42 @@ enum Severity {
   LOW
   MEDIUM
   HIGH
+}
+
+model ScanSchedule {
+  id          String    @id @default(cuid())
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId      String
+  url         String
+  frequency   String    // e.g., "daily", "weekly", "monthly", or cron expression
+  cron        String?   // Optional cron expression
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  lastRunAt   DateTime?
+  nextRunAt  DateTime?
+  scans       Scan[]
+}
+
+model AlertRule {
+  id          String    @id @default(cuid())
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId      String
+  url         String?   // Optional: null means all URLs in org
+  minRisk     RiskLevel @default(MEDIUM)
+  email       String
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+}
+
+model AlertSettings {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enabled     Boolean   @default(true)
+  minRisk     RiskLevel @default(MEDIUM)
+  email       String
+  updatedAt   DateTime  @default(now()) @updatedAt
 }
 

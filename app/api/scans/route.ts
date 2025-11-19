@@ -4,8 +4,46 @@ import { scanUrl } from '@/lib/scanner'
 import { getSession } from '@/lib/session'
 import { z } from 'zod'
 
+async function checkAndSendAlerts(orgId: string, scanId: string, riskLevel: string) {
+  try {
+    const scan = await prisma.scan.findUnique({
+      where: { id: scanId },
+      include: {
+        user: {
+          include: {
+            alertSettings: true,
+          },
+        },
+      },
+    })
+
+    if (!scan || !scan.user) return
+
+    const settings = scan.user.alertSettings
+    if (!settings || !settings.enabled) return
+
+    const riskLevels = ['LOW', 'MEDIUM', 'HIGH']
+    const scanRiskIndex = riskLevels.indexOf(riskLevel)
+    const minRiskIndex = riskLevels.indexOf(settings.minRisk)
+
+    if (scanRiskIndex >= minRiskIndex) {
+      const { sendAlertEmail } = await import('@/lib/email')
+      await sendAlertEmail(
+        settings.email,
+        scan.url,
+        riskLevel,
+        scan.riskScore,
+        scanId
+      )
+    }
+  } catch (error) {
+    console.error('Error checking/sending alerts:', error)
+  }
+}
+
 const scanSchema = z.object({
   url: z.string().url('Invalid URL format'),
+  scheduleId: z.string().optional(),
 })
 
 // POST /api/scans - Create and run a new scan
@@ -21,13 +59,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { url } = scanSchema.parse(body)
+    const { url, scheduleId } = scanSchema.extend({
+      scheduleId: z.string().optional(),
+    }).parse(body)
+
+    if (!session.orgId) {
+      return NextResponse.json(
+        { error: 'No organization selected' },
+        { status: 400 }
+      )
+    }
 
     // Create scan with PENDING status
     const scan = await prisma.scan.create({
       data: {
         url,
         userId: session.userId,
+        orgId: session.orgId,
+        scheduleId: scheduleId || null,
         riskScore: 0,
         riskLevel: 'LOW',
         status: 'PENDING',
@@ -112,9 +161,16 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
 
+    if (!session.orgId) {
+      return NextResponse.json(
+        { error: 'No organization selected' },
+        { status: 400 }
+      )
+    }
+
     // Build where clause
     const where: any = {
-      userId: session.userId,
+      orgId: session.orgId,
     }
 
     if (riskLevel && ['LOW', 'MEDIUM', 'HIGH'].includes(riskLevel)) {

@@ -369,15 +369,388 @@ async function checkPorts(url: string): Promise<Finding[]> {
   return findings
 }
 
+async function checkDirectoryListing(url: string): Promise<Finding[]> {
+  const findings: Finding[] = []
+  const commonPaths = ['/', '/uploads/', '/images/', '/backup/', '/files/', '/public/']
+  
+  for (const path of commonPaths) {
+    try {
+      const testUrl = new URL(path, url).toString()
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: { 'User-Agent': 'VulnerabilityScanner/1.0' },
+        redirect: 'follow',
+      })
+      
+      const html = await response.text()
+      const lowerHtml = html.toLowerCase()
+      
+      if (lowerHtml.includes('index of') || 
+          lowerHtml.includes('directory listing') ||
+          lowerHtml.includes('<title>index of') ||
+          (lowerHtml.includes('<pre>') && lowerHtml.includes('parent directory'))) {
+        findings.push({
+          type: 'OTHER' as FindingType,
+          title: `Directory listing enabled on ${path}`,
+          severity: 'MEDIUM' as Severity,
+          passed: false,
+          details: `Directory listing appears to be enabled on ${path}. This can expose sensitive files and directory structure.`,
+        })
+      }
+    } catch (error) {
+      // Ignore errors for individual paths
+    }
+  }
+  
+  if (findings.length === 0) {
+    findings.push({
+      type: 'OTHER' as FindingType,
+      title: 'No directory listing detected',
+      severity: 'INFO' as Severity,
+      passed: true,
+      details: 'No directory listing was detected on common paths.',
+    })
+  }
+  
+  return findings
+}
+
+async function checkHTTPMethods(url: string): Promise<Finding[]> {
+  const findings: Finding[] = []
+  const unsafeMethods = ['PUT', 'DELETE', 'TRACE', 'PATCH']
+  
+  for (const method of unsafeMethods) {
+    try {
+      const response = await fetch(url, {
+        method: method as any,
+        headers: { 'User-Agent': 'VulnerabilityScanner/1.0' },
+        redirect: 'follow',
+      })
+      
+      // If method is allowed (not 405 Method Not Allowed)
+      if (response.status !== 405 && response.status < 500) {
+        findings.push({
+          type: 'OTHER' as FindingType,
+          title: `Potentially unsafe HTTP method enabled: ${method}`,
+          severity: response.status < 400 ? 'HIGH' : 'MEDIUM' as Severity,
+          passed: false,
+          details: `HTTP ${method} method is enabled and returned status ${response.status}. This method should be disabled if not needed.`,
+        })
+      }
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+  
+  if (findings.length === 0) {
+    findings.push({
+      type: 'OTHER' as FindingType,
+      title: 'Unsafe HTTP methods appear disabled',
+      severity: 'INFO' as Severity,
+      passed: true,
+      details: 'PUT, DELETE, TRACE, and PATCH methods appear to be disabled or not allowed.',
+    })
+  }
+  
+  return findings
+}
+
+async function checkMixedContent(url: string): Promise<Finding[]> {
+  const findings: Finding[] = []
+  
+  try {
+    const urlObj = new URL(url)
+    if (urlObj.protocol !== 'https:') {
+      return findings // Only check for mixed content on HTTPS pages
+    }
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'User-Agent': 'VulnerabilityScanner/1.0' },
+      redirect: 'follow',
+    })
+    
+    const html = await response.text()
+    
+    // Check for HTTP resources in HTTPS page
+    const httpResourceRegex = /(src|href|action)=["'](http:\/\/[^"']+)["']/gi
+    const matches = html.match(httpResourceRegex)
+    
+    if (matches && matches.length > 0) {
+      const uniqueResources = [...new Set(matches.map(m => m.match(/http:\/\/[^"']+/)?.[0]).filter(Boolean))]
+      findings.push({
+        type: 'OTHER' as FindingType,
+        title: 'Mixed content detected (insecure HTTP resources on HTTPS page)',
+        severity: 'MEDIUM' as Severity,
+        passed: false,
+        details: `Found ${uniqueResources.length} HTTP resource(s) loaded on HTTPS page: ${uniqueResources.slice(0, 3).join(', ')}${uniqueResources.length > 3 ? '...' : ''}. This can be exploited by attackers.`,
+      })
+    } else {
+      findings.push({
+        type: 'OTHER' as FindingType,
+        title: 'No mixed content detected',
+        severity: 'INFO' as Severity,
+        passed: true,
+        details: 'No HTTP resources found on HTTPS page.',
+      })
+    }
+  } catch (error) {
+    // Ignore errors
+  }
+  
+  return findings
+}
+
+async function checkSecurityTxt(url: string): Promise<Finding[]> {
+  const findings: Finding[] = []
+  
+  try {
+    const urlObj = new URL(url)
+    const baseUrl = `${urlObj.protocol}//${urlObj.host}`
+    
+    // Check for security.txt
+    try {
+      const securityTxtUrl = `${baseUrl}/.well-known/security.txt`
+      const response = await fetch(securityTxtUrl, {
+        method: 'GET',
+        headers: { 'User-Agent': 'VulnerabilityScanner/1.0' },
+        redirect: 'follow',
+      })
+      
+      if (response.ok) {
+        findings.push({
+          type: 'OTHER' as FindingType,
+          title: 'security.txt found',
+          severity: 'INFO' as Severity,
+          passed: true,
+          details: 'security.txt file is present at /.well-known/security.txt',
+        })
+      } else {
+        findings.push({
+          type: 'OTHER' as FindingType,
+          title: 'security.txt not found',
+          severity: 'INFO' as Severity,
+          passed: false,
+          details: 'security.txt file is missing. Consider adding one at /.well-known/security.txt for security researchers.',
+        })
+      }
+    } catch (error) {
+      findings.push({
+        type: 'OTHER' as FindingType,
+        title: 'security.txt not found',
+        severity: 'INFO' as Severity,
+        passed: false,
+        details: 'security.txt file is missing. Consider adding one at /.well-known/security.txt for security researchers.',
+      })
+    }
+    
+    // Check for robots.txt (informational)
+    try {
+      const robotsTxtUrl = `${baseUrl}/robots.txt`
+      const response = await fetch(robotsTxtUrl, {
+        method: 'GET',
+        headers: { 'User-Agent': 'VulnerabilityScanner/1.0' },
+        redirect: 'follow',
+      })
+      
+      if (response.ok) {
+        findings.push({
+          type: 'OTHER' as FindingType,
+          title: 'robots.txt found',
+          severity: 'INFO' as Severity,
+          passed: true,
+          details: 'robots.txt file is present',
+        })
+      }
+    } catch (error) {
+      // Ignore robots.txt errors
+    }
+  } catch (error) {
+    // Ignore errors
+  }
+  
+  return findings
+}
+
+async function checkSQLiXSSProbe(url: string): Promise<Finding[]> {
+  const findings: Finding[] = []
+  
+  try {
+    const urlObj = new URL(url)
+    const params = urlObj.searchParams
+    
+    if (params.toString().length === 0) {
+      // No query parameters, skip probing
+      return findings
+    }
+    
+    // XSS payloads
+    const xssPayloads = [
+      '<script>alert(1)</script>',
+      '\'"><img src=x onerror=alert(1)>',
+      'javascript:alert(1)',
+    ]
+    
+    // SQLi payloads
+    const sqliPayloads = [
+      "1' OR '1'='1",
+      "1'--",
+      "' UNION SELECT NULL--",
+    ]
+    
+    // Test XSS
+    for (const [key, value] of params.entries()) {
+      for (const payload of xssPayloads) {
+        try {
+          const testUrl = new URL(url)
+          testUrl.searchParams.set(key, payload)
+          
+          const response = await fetch(testUrl.toString(), {
+            method: 'GET',
+            headers: { 'User-Agent': 'VulnerabilityScanner/1.0' },
+            redirect: 'follow',
+          })
+          
+          const html = await response.text()
+          
+          // Check if payload is reflected unescaped
+          if (html.includes(payload) || html.includes(payload.replace(/</g, '&lt;').replace(/>/g, '&gt;'))) {
+            findings.push({
+              type: 'XSS' as FindingType,
+              title: `Possible reflected XSS surface on parameter: ${key}`,
+              severity: 'HIGH' as Severity,
+              passed: false,
+              details: `The parameter "${key}" appears to reflect user input without proper encoding. This may indicate a reflected XSS vulnerability.`,
+            })
+            break // Only report once per parameter
+          }
+        } catch (error) {
+          // Ignore errors
+        }
+      }
+    }
+    
+    // Test SQLi
+    for (const [key, value] of params.entries()) {
+      for (const payload of sqliPayloads) {
+        try {
+          const testUrl = new URL(url)
+          testUrl.searchParams.set(key, payload)
+          
+          const response = await fetch(testUrl.toString(), {
+            method: 'GET',
+            headers: { 'User-Agent': 'VulnerabilityScanner/1.0' },
+            redirect: 'follow',
+          })
+          
+          const html = await response.text().toLowerCase()
+          
+          // Check for SQL error patterns
+          const sqlErrorPatterns = [
+            'sql syntax',
+            'mysql error',
+            'postgresql error',
+            'ora-',
+            'sqlite error',
+            'warning: mysql',
+            'unclosed quotation mark',
+            'quoted string not properly terminated',
+          ]
+          
+          for (const pattern of sqlErrorPatterns) {
+            if (html.includes(pattern)) {
+              findings.push({
+                type: 'OTHER' as FindingType,
+                title: `Potential SQL error exposure detected on parameter: ${key}`,
+                severity: 'HIGH' as Severity,
+                passed: false,
+                details: `SQL error message detected in response for parameter "${key}". This may indicate a SQL injection vulnerability.`,
+              })
+              break
+            }
+          }
+        } catch (error) {
+          // Ignore errors
+        }
+      }
+    }
+  } catch (error) {
+    // Ignore errors
+  }
+  
+  return findings
+}
+
+async function checkTechFingerprinting(url: string): Promise<Finding[]> {
+  const findings: Finding[] = []
+  
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'User-Agent': 'VulnerabilityScanner/1.0' },
+      redirect: 'follow',
+    })
+    
+    const headers = response.headers
+    
+    // Check Server header
+    const server = headers.get('server')
+    if (server) {
+      findings.push({
+        type: 'OTHER' as FindingType,
+        title: `Server header exposed: ${server}`,
+        severity: 'INFO' as Severity,
+        passed: false,
+        details: `Server header reveals technology stack: ${server}. Consider hiding this information.`,
+      })
+    }
+    
+    // Check X-Powered-By header
+    const poweredBy = headers.get('x-powered-by')
+    if (poweredBy) {
+      findings.push({
+        type: 'OTHER' as FindingType,
+        title: `X-Powered-By header exposed: ${poweredBy}`,
+        severity: 'INFO' as Severity,
+        passed: false,
+        details: `X-Powered-By header reveals technology: ${poweredBy}. Consider removing this header.`,
+      })
+    }
+    
+    // Check for other technology indicators
+    const techIndicators = [
+      { header: 'x-aspnet-version', name: 'ASP.NET' },
+      { header: 'x-aspnetmvc-version', name: 'ASP.NET MVC' },
+      { header: 'x-runtime', name: 'Runtime version' },
+    ]
+    
+    for (const indicator of techIndicators) {
+      const value = headers.get(indicator.header)
+      if (value) {
+        findings.push({
+          type: 'OTHER' as FindingType,
+          title: `${indicator.name} exposed: ${value}`,
+          severity: 'INFO' as Severity,
+          passed: false,
+          details: `Technology information exposed via ${indicator.header} header.`,
+        })
+      }
+    }
+  } catch (error) {
+    // Ignore errors
+  }
+  
+  return findings
+}
+
 function calculateRiskScore(findings: Finding[]): { score: number; level: 'LOW' | 'MEDIUM' | 'HIGH' } {
   let score = 0
 
   for (const finding of findings) {
     if (!finding.passed) {
-      // Updated scoring system
+      // Updated scoring system with new checks
       if (finding.type === 'HEADER') {
         if (finding.severity === 'HIGH') {
-          // Missing critical header or weak CSP
           if (finding.title.includes('Content-Security-Policy') && finding.title.includes('Weak')) {
             score += 4 // Weak CSP
           } else {
@@ -400,16 +773,35 @@ function calculateRiskScore(findings: Finding[]): { score: number; level: 'LOW' 
         }
       } else if (finding.type === 'XSS') {
         if (finding.severity === 'HIGH') {
-          score += 4 // XSS surface indicators
+          // Clear XSS reflection
+          if (finding.title.includes('reflected XSS')) {
+            score += 6
+          } else {
+            score += 4 // XSS surface indicators
+          }
         }
       } else {
-        // OTHER type
-        if (finding.severity === 'HIGH') {
+        // OTHER type - includes new checks
+        if (finding.title.includes('Directory listing')) {
+          score += 3
+        } else if (finding.title.includes('HTTP method enabled')) {
+          score += 4 // Unsafe methods (PUT/DELETE)
+        } else if (finding.title.includes('Mixed content')) {
+          score += 3
+        } else if (finding.title.includes('SQL error')) {
+          score += 5 // SQL errors exposure
+        } else if (finding.severity === 'HIGH') {
           score += 3
         } else if (finding.severity === 'MEDIUM') {
           score += 2
         } else if (finding.severity === 'LOW') {
           score += 1
+        } else if (finding.severity === 'INFO' && (
+          finding.title.includes('security.txt') ||
+          finding.title.includes('Server header') ||
+          finding.title.includes('X-Powered-By')
+        )) {
+          score += 1 // Tech fingerprinting / missing security.txt
         }
       }
     }
@@ -438,14 +830,42 @@ export async function scanUrl(url: string): Promise<ScanResult> {
   }
 
   // Run all checks in parallel
-  const [headerFindings, sslFindings, portFindings, xssFindings] = await Promise.all([
+  const [
+    headerFindings,
+    sslFindings,
+    portFindings,
+    xssFindings,
+    directoryFindings,
+    httpMethodFindings,
+    mixedContentFindings,
+    securityTxtFindings,
+    sqliXssProbeFindings,
+    techFingerprintFindings,
+  ] = await Promise.all([
     checkHeaders(targetUrl),
     checkSSL(targetUrl),
     checkPorts(targetUrl),
     checkXSSSurface(targetUrl),
+    checkDirectoryListing(targetUrl),
+    checkHTTPMethods(targetUrl),
+    checkMixedContent(targetUrl),
+    checkSecurityTxt(targetUrl),
+    checkSQLiXSSProbe(targetUrl),
+    checkTechFingerprinting(targetUrl),
   ])
 
-  const allFindings = [...headerFindings, ...sslFindings, ...portFindings, ...xssFindings]
+  const allFindings = [
+    ...headerFindings,
+    ...sslFindings,
+    ...portFindings,
+    ...xssFindings,
+    ...directoryFindings,
+    ...httpMethodFindings,
+    ...mixedContentFindings,
+    ...securityTxtFindings,
+    ...sqliXssProbeFindings,
+    ...techFingerprintFindings,
+  ]
   const { score, level } = calculateRiskScore(allFindings)
 
   return {

@@ -63,11 +63,21 @@ export async function POST(request: NextRequest) {
       scheduleId: z.string().optional(),
     }).parse(body)
 
-    if (!session.orgId) {
-      return NextResponse.json(
-        { error: 'No organization selected' },
-        { status: 400 }
-      )
+    // If no orgId in session, get user's first org
+    let orgId = session.orgId
+    if (!orgId) {
+      const { getUserOrgs } = await import('@/lib/org')
+      const orgs = await getUserOrgs(session.userId)
+      if (orgs.length === 0) {
+        return NextResponse.json(
+          { error: 'No organization found. Please contact support.' },
+          { status: 400 }
+        )
+      }
+      orgId = orgs[0].id
+      // Update session with orgId
+      const { updateSessionOrg } = await import('@/lib/session')
+      await updateSessionOrg(orgId)
     }
 
     // Create scan with PENDING status
@@ -75,7 +85,7 @@ export async function POST(request: NextRequest) {
       data: {
         url,
         userId: session.userId,
-        orgId: session.orgId,
+        orgId: orgId,
         scheduleId: scheduleId || null,
         riskScore: 0,
         riskLevel: 'LOW',
@@ -161,16 +171,26 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
 
-    if (!session.orgId) {
-      return NextResponse.json(
-        { error: 'No organization selected' },
-        { status: 400 }
-      )
+    // If no orgId in session, get user's first org
+    let orgId = session.orgId
+    if (!orgId) {
+      const { getUserOrgs } = await import('@/lib/org')
+      const orgs = await getUserOrgs(session.userId)
+      if (orgs.length === 0) {
+        return NextResponse.json(
+          { error: 'No organization found' },
+          { status: 400 }
+        )
+      }
+      orgId = orgs[0].id
+      // Update session with orgId
+      const { updateSessionOrg } = await import('@/lib/session')
+      await updateSessionOrg(orgId)
     }
 
     // Build where clause
     const where: any = {
-      orgId: session.orgId,
+      orgId: orgId,
     }
 
     if (riskLevel && ['LOW', 'MEDIUM', 'HIGH'].includes(riskLevel)) {

@@ -76,8 +76,14 @@ export default function Dashboard() {
       if (response.ok) {
         const data = await response.json()
         setOrgs(data.orgs || [])
-        if (data.orgs && data.orgs.length > 0 && !currentOrg) {
-          setCurrentOrg({ id: data.orgs[0].id, name: data.orgs[0].name })
+        if (data.orgs && data.orgs.length > 0) {
+          // If no current org is set, use the first one and update session
+          if (!currentOrg) {
+            const firstOrg = data.orgs[0]
+            setCurrentOrg({ id: firstOrg.id, name: firstOrg.name })
+            // Update session to include orgId
+            await handleOrgSwitch(firstOrg.id)
+          }
         }
       }
     } catch (err) {
@@ -94,13 +100,11 @@ export default function Dashboard() {
       })
 
       if (response.ok) {
-        const org = orgs.find(o => o.id === orgId)
-        if (org) {
-          setCurrentOrg({ id: org.id, name: org.name })
-          // Refresh data for new org
-          fetchStats()
-          fetchScans()
-        }
+        const org = orgs.find(o => o.id === orgId) || { id: orgId, name: 'Organization' }
+        setCurrentOrg({ id: org.id, name: org.name })
+        // Refresh data for new org
+        fetchStats()
+        fetchScans()
       }
     } catch (err) {
       console.error('Error switching org:', err)
@@ -212,6 +216,47 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  // Show message if no orgs available
+  if (orgs.length === 0 && !loading) {
+    return (
+      <div className="min-h-screen">
+        <nav className="glass sticky top-0 z-50 border-b border-white/20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-20">
+              <div className="flex items-center">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-white text-xl font-bold">🔒</span>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      Vulnerability Scanner
+                    </h1>
+                    <p className="text-xs text-gray-500">Enterprise Security Analysis</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </nav>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
+            <h2 className="text-2xl font-bold text-yellow-900 mb-4">No Organization Found</h2>
+            <p className="text-yellow-800 mb-6">
+              You need to be part of an organization to use this service. Please contact support or try logging out and back in.
+            </p>
+            <button
+              onClick={handleLogout}
+              className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl"
+            >
+              Logout
+            </button>
+          </div>
+        </main>
       </div>
     )
   }

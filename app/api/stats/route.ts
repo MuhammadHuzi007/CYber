@@ -13,14 +13,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    if (!session.orgId) {
-      return NextResponse.json(
-        { error: 'No organization selected' },
-        { status: 400 }
-      )
+    // If no orgId in session, get user's first org
+    let orgId = session.orgId
+    if (!orgId) {
+      const { getUserOrgs } = await import('@/lib/org')
+      const orgs = await getUserOrgs(session.userId)
+      if (orgs.length === 0) {
+        return NextResponse.json(
+          { error: 'No organization found' },
+          { status: 400 }
+        )
+      }
+      orgId = orgs[0].id
+      // Update session with orgId
+      const { updateSessionOrg } = await import('@/lib/session')
+      await updateSessionOrg(orgId)
     }
-
-    const orgId = session.orgId
 
     // Get total scans
     const totalScans = await prisma.scan.count({

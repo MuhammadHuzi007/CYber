@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generatePDF } from '@/lib/pdf'
+import { getSession } from '@/lib/session'
 
 // GET /api/scans/[id]/report - Generate and download PDF report
 export async function GET(
@@ -8,6 +9,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession()
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const scan = await prisma.scan.findUnique({
       where: { id: params.id },
       include: {
@@ -24,6 +34,14 @@ export async function GET(
       return NextResponse.json(
         { error: 'Scan not found' },
         { status: 404 }
+      )
+    }
+
+    // Verify the scan belongs to the user
+    if (scan.userId !== session.userId) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
       )
     }
 

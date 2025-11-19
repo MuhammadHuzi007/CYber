@@ -24,18 +24,63 @@ interface Scan {
   findings: Finding[]
 }
 
+interface Finding {
+  id: string
+  type: string
+  title: string
+  severity: string
+  passed: boolean
+  details: string | null
+}
+
+interface Scan {
+  id: string
+  url: string
+  riskScore: number
+  riskLevel: string
+  status: string
+  startedAt: string
+  completedAt: string | null
+  findings: Finding[]
+}
+
 export default function ScanDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const [scan, setScan] = useState<Scan | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null)
 
   useEffect(() => {
+    checkAuth()
     if (params.id) {
       fetchScan(params.id as string)
     }
   }, [params.id])
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData)
+      } else {
+        router.push('/auth/login')
+      }
+    } catch (err) {
+      router.push('/auth/login')
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      router.push('/auth/login')
+    } catch (err) {
+      console.error('Logout error:', err)
+    }
+  }
 
   const fetchScan = async (id: string) => {
     try {
@@ -105,7 +150,7 @@ export default function ScanDetailsPage() {
     }
   }
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -161,7 +206,10 @@ export default function ScanDetailsPage() {
                 </div>
               </Link>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center space-x-4">
+              {user && (
+                <span className="text-sm text-gray-600">{user.email}</span>
+              )}
               <Link
                 href="/"
                 className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
@@ -169,6 +217,14 @@ export default function ScanDetailsPage() {
                 <span>←</span>
                 <span>Back to Dashboard</span>
               </Link>
+              {user && (
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+                >
+                  Logout
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -269,7 +325,7 @@ export default function ScanDetailsPage() {
           </div>
         </div>
 
-        {/* Findings */}
+        {/* Findings - Grouped by Type */}
         <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 overflow-hidden">
           <div className="px-8 py-6 border-b border-gray-200/50 bg-gradient-to-r from-gray-50 to-white">
             <div className="flex items-center justify-between">
@@ -286,60 +342,91 @@ export default function ScanDetailsPage() {
               </div>
             </div>
           </div>
-          <div className="divide-y divide-gray-200/50">
-            {scan.findings.length === 0 ? (
-              <div className="px-8 py-16 text-center">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl">✅</span>
-                </div>
-                <p className="text-gray-500 font-medium">No findings available</p>
+          
+          {scan.findings.length === 0 ? (
+            <div className="px-8 py-16 text-center">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">✅</span>
               </div>
-            ) : (
-              scan.findings.map((finding, index) => (
-                <div
-                  key={finding.id}
-                  className="px-8 py-6 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/30 transition-all duration-200"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <div className="flex items-start space-x-4">
-                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold shadow-sm ${
-                      finding.passed 
-                        ? 'bg-green-100 text-green-600 border-2 border-green-200' 
-                        : 'bg-red-100 text-red-600 border-2 border-red-200'
-                    }`}>
-                      {finding.passed ? '✓' : '✗'}
+              <p className="text-gray-500 font-medium">No findings available</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200/50">
+              {['HEADER', 'SSL', 'PORT', 'XSS', 'OTHER'].map((type) => {
+                const typeFindings = scan.findings.filter(f => f.type === type)
+                if (typeFindings.length === 0) return null
+
+                const typeLabels: Record<string, string> = {
+                  HEADER: 'Security Headers',
+                  SSL: 'SSL/TLS',
+                  PORT: 'Port Scanning',
+                  XSS: 'XSS Surface',
+                  OTHER: 'Other',
+                }
+
+                const typeIcons: Record<string, string> = {
+                  HEADER: '🛡️',
+                  SSL: '🔐',
+                  PORT: '🔌',
+                  XSS: '⚠️',
+                  OTHER: '📋',
+                }
+
+                return (
+                  <div key={type} className="px-8 py-6">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <span className="text-2xl">{typeIcons[type]}</span>
+                      <h3 className="text-xl font-bold text-gray-900">{typeLabels[type]}</h3>
+                      <span className="px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-700 rounded">
+                        {typeFindings.length}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="text-lg font-bold text-gray-900 pr-4">
-                          {finding.title}
-                        </h3>
-                      </div>
-                      <div className="flex items-center gap-3 mb-3 flex-wrap">
-                        <span
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border-2 ${getSeverityColor(
-                            finding.severity
-                          )} shadow-sm`}
+                    <div className="space-y-4 ml-11">
+                      {typeFindings.map((finding) => (
+                        <div
+                          key={finding.id}
+                          className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors"
                         >
-                          {finding.severity}
-                        </span>
-                        <span className="px-3 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg border border-gray-200">
-                          {finding.type}
-                        </span>
-                      </div>
-                      {finding.details && (
-                        <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                          <p className="text-sm text-gray-700 leading-relaxed">
-                            {finding.details}
-                          </p>
+                          <div className="flex items-start space-x-4">
+                            <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold shadow-sm ${
+                              finding.passed 
+                                ? 'bg-green-100 text-green-600 border-2 border-green-200' 
+                                : 'bg-red-100 text-red-600 border-2 border-red-200'
+                            }`}>
+                              {finding.passed ? '✓' : '✗'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="text-base font-bold text-gray-900 pr-4">
+                                  {finding.title}
+                                </h4>
+                              </div>
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <span
+                                  className={`px-2.5 py-1 text-xs font-bold rounded-lg border-2 ${getSeverityColor(
+                                    finding.severity
+                                  )} shadow-sm`}
+                                >
+                                  {finding.severity}
+                                </span>
+                              </div>
+                              {finding.details && (
+                                <div className="mt-2 p-3 bg-white rounded-lg border border-gray-200">
+                                  <p className="text-sm text-gray-700 leading-relaxed">
+                                    {finding.details}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </main>
     </div>

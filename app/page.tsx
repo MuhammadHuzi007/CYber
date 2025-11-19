@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface Scan {
   id: string
@@ -12,21 +13,89 @@ interface Scan {
   startedAt: string
 }
 
+interface Stats {
+  totalScans: number
+  byRisk: {
+    LOW: number
+    MEDIUM: number
+    HIGH: number
+  }
+  recentScans: Scan[]
+}
+
 export default function Dashboard() {
+  const router = useRouter()
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [scans, setScans] = useState<Scan[]>([])
+  const [stats, setStats] = useState<Stats | null>(null)
   const [error, setError] = useState('')
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null)
+  
+  // Filters
+  const [riskFilter, setRiskFilter] = useState<string>('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   useEffect(() => {
+    checkAuth()
+    fetchStats()
     fetchScans()
   }, [])
 
+  useEffect(() => {
+    fetchScans()
+  }, [riskFilter, searchQuery, dateFrom, dateTo])
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData)
+      } else {
+        router.push('/auth/login')
+      }
+    } catch (err) {
+      router.push('/auth/login')
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      router.push('/auth/login')
+    } catch (err) {
+      console.error('Logout error:', err)
+    }
+  }
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      }
+    } catch (err) {
+      console.error('Error fetching stats:', err)
+    }
+  }
+
   const fetchScans = async () => {
     try {
-      const response = await fetch('/api/scans')
-      const data = await response.json()
-      setScans(data.scans || [])
+      const params = new URLSearchParams()
+      if (riskFilter) params.append('riskLevel', riskFilter)
+      if (searchQuery) params.append('q', searchQuery)
+      if (dateFrom) params.append('from', dateFrom)
+      if (dateTo) params.append('to', dateTo)
+
+      const response = await fetch(`/api/scans?${params.toString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setScans(data.scans || [])
+      }
     } catch (err) {
       console.error('Error fetching scans:', err)
     }
@@ -51,14 +120,21 @@ export default function Dashboard() {
         throw new Error(data.error || 'Failed to start scan')
       }
 
-      const newScan = await response.json()
       setUrl('')
       fetchScans() // Refresh the list
+      fetchStats() // Refresh stats
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }
+  }
+
+  const clearFilters = () => {
+    setRiskFilter('')
+    setSearchQuery('')
+    setDateFrom('')
+    setDateTo('')
   }
 
   const getRiskColor = (level: string) => {
@@ -87,6 +163,14 @@ export default function Dashboard() {
     }
   }
 
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen">
       {/* Navigation */}
@@ -106,26 +190,71 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Link
-                href="/auth/login"
-                className="text-gray-700 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">{user.email}</span>
+              <button
+                onClick={handleLogout}
+                className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gray-100"
               >
-                Login
-              </Link>
-              <Link
-                href="/auth/register"
-                className="gradient-bg text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-              >
-                Get Started
-              </Link>
+                Logout
+              </button>
             </div>
           </div>
         </div>
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Hero Section with Scan Form */}
+        {/* Stats Section */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Total Scans</p>
+                  <p className="text-3xl font-bold text-gray-900">{stats.totalScans}</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">📊</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Low Risk</p>
+                  <p className="text-3xl font-bold text-green-600">{stats.byRisk.LOW}</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">✅</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Medium Risk</p>
+                  <p className="text-3xl font-bold text-yellow-600">{stats.byRisk.MEDIUM}</p>
+                </div>
+                <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">⚠️</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">High Risk</p>
+                  <p className="text-3xl font-bold text-red-600">{stats.byRisk.HIGH}</p>
+                </div>
+                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">🔴</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Scan Form */}
         <div className="mb-12">
           <div className="text-center mb-8 animate-fade-in">
             <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
@@ -136,7 +265,6 @@ export default function Dashboard() {
             </p>
           </div>
           
-          {/* Scan Form Card */}
           <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-8 mb-8 card-hover animate-slide-up">
             <div className="flex items-center space-x-2 mb-6">
               <div className="w-2 h-2 bg-green-500 rounded-full pulse-ring"></div>
@@ -194,6 +322,70 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Filters */}
+        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900">Filters</h3>
+            <button
+              onClick={clearFilters}
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Clear all
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Risk Level
+              </label>
+              <select
+                value={riskFilter}
+                onChange={(e) => setRiskFilter(e.target.value)}
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All</option>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search URL
+              </label>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by URL..."
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                From Date
+              </label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                To Date
+              </label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Scan History */}
         <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-soft border border-gray-200/50 overflow-hidden">
           <div className="px-8 py-6 border-b border-gray-200/50 bg-gradient-to-r from-gray-50 to-white">
@@ -248,7 +440,7 @@ export default function Dashboard() {
                           <span className="text-4xl">🔍</span>
                         </div>
                         <div>
-                          <p className="text-gray-500 font-medium">No scans yet</p>
+                          <p className="text-gray-500 font-medium">No scans found</p>
                           <p className="text-sm text-gray-400 mt-1">Start by scanning a URL above</p>
                         </div>
                       </div>
@@ -259,7 +451,6 @@ export default function Dashboard() {
                     <tr 
                       key={scan.id} 
                       className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-200"
-                      style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <td className="px-8 py-5 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
@@ -313,7 +504,7 @@ export default function Dashboard() {
                         <span
                           className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${getStatusColor(
                             scan.status
-                          )} bg-opacity-10`}
+                          )}`}
                         >
                           <span className={`w-2 h-2 rounded-full mr-2 ${
                             scan.status === 'COMPLETED' ? 'bg-green-500' :
@@ -342,4 +533,3 @@ export default function Dashboard() {
     </div>
   )
 }
-

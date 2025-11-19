@@ -14,23 +14,6 @@ export interface Finding {
   details?: string
 }
 
-const CRITICAL_HEADERS = [
-  'Content-Security-Policy',
-  'X-Frame-Options',
-  'X-Content-Type-Options',
-  'Strict-Transport-Security',
-  'Referrer-Policy',
-]
-
-const SUSPICIOUS_PORTS = [
-  { port: 21, name: 'FTP' },
-  { port: 22, name: 'SSH' },
-  { port: 3306, name: 'MySQL' },
-  { port: 5432, name: 'PostgreSQL' },
-  { port: 3389, name: 'RDP' },
-  { port: 1433, name: 'MSSQL' },
-]
-
 async function checkHeaders(url: string): Promise<Finding[]> {
   const findings: Finding[] = []
   
@@ -45,16 +28,150 @@ async function checkHeaders(url: string): Promise<Finding[]> {
 
     const headers = response.headers
     
-    for (const header of CRITICAL_HEADERS) {
-      const headerValue = headers.get(header.toLowerCase())
-      const passed = !!headerValue
-      
+    // Content-Security-Policy - Check presence and quality
+    const csp = headers.get('content-security-policy')
+    if (!csp) {
       findings.push({
         type: 'HEADER' as FindingType,
-        title: `${passed ? 'Present' : 'Missing'}: ${header}`,
-        severity: passed ? 'LOW' : 'HIGH' as Severity,
-        passed,
-        details: passed ? `Header value: ${headerValue}` : `Security header ${header} is missing`,
+        title: 'Missing: Content-Security-Policy',
+        severity: 'HIGH' as Severity,
+        passed: false,
+        details: 'Content-Security-Policy header is missing. This is critical for preventing XSS attacks.',
+      })
+    } else {
+      const cspLower = csp.toLowerCase()
+      if (cspLower.includes('unsafe-inline') || cspLower.includes("*")) {
+        findings.push({
+          type: 'HEADER' as FindingType,
+          title: 'Weak Content-Security-Policy',
+          severity: 'HIGH' as Severity,
+          passed: false,
+          details: `CSP contains unsafe directives: ${csp}. This weakens XSS protection.`,
+        })
+      } else {
+        findings.push({
+          type: 'HEADER' as FindingType,
+          title: 'Present: Content-Security-Policy',
+          severity: 'INFO' as Severity,
+          passed: true,
+          details: `CSP is present and appears secure: ${csp}`,
+        })
+      }
+    }
+
+    // X-Frame-Options - Require DENY or SAMEORIGIN
+    const xFrameOptions = headers.get('x-frame-options')
+    if (!xFrameOptions) {
+      findings.push({
+        type: 'HEADER' as FindingType,
+        title: 'Missing: X-Frame-Options',
+        severity: 'MEDIUM' as Severity,
+        passed: false,
+        details: 'X-Frame-Options header is missing. This allows clickjacking attacks.',
+      })
+    } else {
+      const xfoUpper = xFrameOptions.toUpperCase()
+      if (xfoUpper === 'DENY' || xfoUpper === 'SAMEORIGIN') {
+        findings.push({
+          type: 'HEADER' as FindingType,
+          title: 'Present: X-Frame-Options',
+          severity: 'INFO' as Severity,
+          passed: true,
+          details: `X-Frame-Options is properly configured: ${xFrameOptions}`,
+        })
+      } else {
+        findings.push({
+          type: 'HEADER' as FindingType,
+          title: 'Weak X-Frame-Options',
+          severity: 'MEDIUM' as Severity,
+          passed: false,
+          details: `X-Frame-Options value "${xFrameOptions}" is not recommended. Should be DENY or SAMEORIGIN.`,
+        })
+      }
+    }
+
+    // X-Content-Type-Options
+    const xContentType = headers.get('x-content-type-options')
+    if (!xContentType) {
+      findings.push({
+        type: 'HEADER' as FindingType,
+        title: 'Missing: X-Content-Type-Options',
+        severity: 'MEDIUM' as Severity,
+        passed: false,
+        details: 'X-Content-Type-Options header is missing. This helps prevent MIME type sniffing attacks.',
+      })
+    } else if (xContentType.toUpperCase() === 'NOSNIFF') {
+      findings.push({
+        type: 'HEADER' as FindingType,
+        title: 'Present: X-Content-Type-Options',
+        severity: 'INFO' as Severity,
+        passed: true,
+        details: 'X-Content-Type-Options is properly configured.',
+      })
+    }
+
+    // Strict-Transport-Security - Require max-age
+    const hsts = headers.get('strict-transport-security')
+    if (!hsts) {
+      findings.push({
+        type: 'HEADER' as FindingType,
+        title: 'Missing: Strict-Transport-Security',
+        severity: 'HIGH' as Severity,
+        passed: false,
+        details: 'Strict-Transport-Security header is missing. This is critical for HTTPS-only sites.',
+      })
+    } else {
+      const hstsLower = hsts.toLowerCase()
+      if (hstsLower.includes('max-age=')) {
+        const maxAgeMatch = hstsLower.match(/max-age=(\d+)/)
+        if (maxAgeMatch) {
+          const maxAge = parseInt(maxAgeMatch[1])
+          if (maxAge >= 31536000) { // 1 year
+            findings.push({
+              type: 'HEADER' as FindingType,
+              title: 'Present: Strict-Transport-Security',
+              severity: 'INFO' as Severity,
+              passed: true,
+              details: `HSTS is properly configured with max-age=${maxAge}`,
+            })
+          } else {
+            findings.push({
+              type: 'HEADER' as FindingType,
+              title: 'Weak Strict-Transport-Security',
+              severity: 'MEDIUM' as Severity,
+              passed: false,
+              details: `HSTS max-age is too short (${maxAge}). Should be at least 31536000 (1 year).`,
+            })
+          }
+        }
+      } else {
+        findings.push({
+          type: 'HEADER' as FindingType,
+          title: 'Invalid Strict-Transport-Security',
+          severity: 'MEDIUM' as Severity,
+          passed: false,
+          details: `HSTS header is missing max-age directive: ${hsts}`,
+        })
+      }
+    }
+
+    // Referrer-Policy
+    const referrerPolicy = headers.get('referrer-policy')
+    if (!referrerPolicy) {
+      findings.push({
+        type: 'HEADER' as FindingType,
+        title: 'Missing: Referrer-Policy',
+        severity: 'LOW' as Severity,
+        passed: false,
+        details: 'Referrer-Policy header is missing. This helps control referrer information leakage.',
+      })
+    } else {
+      findings.push({
+        type: 'HEADER' as FindingType,
+        title: 'Present: Referrer-Policy',
+        severity: 'INFO' as Severity,
+        passed: true,
+        details: `Referrer-Policy is configured: ${referrerPolicy}`,
       })
     }
   } catch (error) {
@@ -88,8 +205,6 @@ async function checkSSL(url: string): Promise<Finding[]> {
       return findings
     }
 
-    // For MVP, we'll do a basic check
-    // In production, you'd want to use tls.connect to check certificate validity
     try {
       const response = await fetch(url, {
         method: 'HEAD',
@@ -99,7 +214,7 @@ async function checkSSL(url: string): Promise<Finding[]> {
       findings.push({
         type: 'SSL' as FindingType,
         title: 'HTTPS connection successful',
-        severity: 'LOW' as Severity,
+        severity: 'INFO' as Severity,
         passed: true,
         details: 'HTTPS is enabled and connection is successful',
       })
@@ -125,6 +240,77 @@ async function checkSSL(url: string): Promise<Finding[]> {
   return findings
 }
 
+async function checkXSSSurface(url: string): Promise<Finding[]> {
+  const findings: Finding[] = []
+  
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'VulnerabilityScanner/1.0',
+      },
+      redirect: 'follow',
+    })
+
+    const html = await response.text()
+    
+    // Check for inline script tags
+    const inlineScriptRegex = /<script[^>]*>[\s\S]*?<\/script>/gi
+    const inlineScripts = html.match(inlineScriptRegex)
+    
+    if (inlineScripts && inlineScripts.length > 0) {
+      findings.push({
+        type: 'XSS' as FindingType,
+        title: 'Inline script tags detected',
+        severity: 'HIGH' as Severity,
+        passed: false,
+        details: `Found ${inlineScripts.length} inline <script> tag(s). Inline scripts are vulnerable to XSS attacks. Consider moving scripts to external files.`,
+      })
+    } else {
+      findings.push({
+        type: 'XSS' as FindingType,
+        title: 'No inline script tags detected',
+        severity: 'INFO' as Severity,
+        passed: true,
+        details: 'No inline <script> tags found in the HTML response.',
+      })
+    }
+
+    // Check for on* event attributes
+    const onEventRegex = /\s(on\w+)\s*=\s*["'][^"']*["']/gi
+    const onEvents = html.match(onEventRegex)
+    
+    if (onEvents && onEvents.length > 0) {
+      const uniqueEvents = [...new Set(onEvents.map(e => e.match(/\s(on\w+)\s*=/)?.[1]).filter(Boolean))]
+      findings.push({
+        type: 'XSS' as FindingType,
+        title: 'Inline event handlers detected',
+        severity: 'HIGH' as Severity,
+        passed: false,
+        details: `Found ${onEvents.length} inline event handler(s) (${uniqueEvents.join(', ')}). Inline event handlers are vulnerable to XSS. Use addEventListener instead.`,
+      })
+    } else {
+      findings.push({
+        type: 'XSS' as FindingType,
+        title: 'No inline event handlers detected',
+        severity: 'INFO' as Severity,
+        passed: true,
+        details: 'No inline event handlers (onclick, onload, etc.) found in the HTML response.',
+      })
+    }
+  } catch (error) {
+    findings.push({
+      type: 'XSS' as FindingType,
+      title: 'Failed to check XSS surface',
+      severity: 'MEDIUM' as Severity,
+      passed: false,
+      details: error instanceof Error ? error.message : 'Could not analyze HTML for XSS vulnerabilities',
+    })
+  }
+
+  return findings
+}
+
 async function checkPorts(url: string): Promise<Finding[]> {
   const findings: Finding[] = []
   
@@ -132,22 +318,21 @@ async function checkPorts(url: string): Promise<Finding[]> {
     const urlObj = new URL(url)
     const hostname = urlObj.hostname
     
-    
     // For MVP, we'll simulate port checks
     // In production, you'd use nmap or tcp.connect
-    // This is a mock implementation - replace with real nmap integration
+    const SUSPICIOUS_PORTS = [
+      { port: 21, name: 'FTP' },
+      { port: 22, name: 'SSH' },
+      { port: 3306, name: 'MySQL' },
+      { port: 5432, name: 'PostgreSQL' },
+      { port: 3389, name: 'RDP' },
+      { port: 1433, name: 'MSSQL' },
+    ]
     
     const openPorts: number[] = []
     
-    // Mock: randomly check a few ports (in real implementation, use nmap)
-    // For now, we'll check if common ports might be open based on URL patterns
-    // This is a simplified version - replace with actual port scanning
-    
+    // Mock check - in production, use actual port scanning
     for (const portInfo of SUSPICIOUS_PORTS) {
-      // Mock check - in production, use actual port scanning
-      // For MVP, we'll mark as passed (not found) to avoid false positives
-      // You can replace this with actual nmap integration
-      
       const isOpen = false // Mock: assume closed for MVP
       
       if (isOpen) {
@@ -166,7 +351,7 @@ async function checkPorts(url: string): Promise<Finding[]> {
       findings.push({
         type: 'PORT' as FindingType,
         title: 'No suspicious ports detected',
-        severity: 'LOW' as Severity,
+        severity: 'INFO' as Severity,
         passed: true,
         details: 'No commonly exploited ports were found to be open',
       })
@@ -189,26 +374,54 @@ function calculateRiskScore(findings: Finding[]): { score: number; level: 'LOW' 
 
   for (const finding of findings) {
     if (!finding.passed) {
-      switch (finding.severity) {
-        case 'HIGH':
-          score += finding.type === 'SSL' ? 3 : 2
-          break
-        case 'MEDIUM':
+      // Updated scoring system
+      if (finding.type === 'HEADER') {
+        if (finding.severity === 'HIGH') {
+          // Missing critical header or weak CSP
+          if (finding.title.includes('Content-Security-Policy') && finding.title.includes('Weak')) {
+            score += 4 // Weak CSP
+          } else {
+            score += 3 // Missing critical header
+          }
+        } else if (finding.severity === 'MEDIUM') {
+          score += 2
+        } else if (finding.severity === 'LOW') {
           score += 1
-          break
-        case 'LOW':
-          score += 0.5
-          break
+        }
+      } else if (finding.type === 'SSL') {
+        if (finding.severity === 'HIGH') {
+          score += 5 // No HTTPS
+        } else {
+          score += 2
+        }
+      } else if (finding.type === 'PORT') {
+        if (finding.severity === 'HIGH') {
+          score += 3 // Suspicious open ports
+        }
+      } else if (finding.type === 'XSS') {
+        if (finding.severity === 'HIGH') {
+          score += 4 // XSS surface indicators
+        }
+      } else {
+        // OTHER type
+        if (finding.severity === 'HIGH') {
+          score += 3
+        } else if (finding.severity === 'MEDIUM') {
+          score += 2
+        } else if (finding.severity === 'LOW') {
+          score += 1
+        }
       }
     }
   }
 
   const numericScore = Math.round(score)
   
+  // Updated risk level mapping: 0-4 LOW, 5-9 MEDIUM, 10+ HIGH
   let level: 'LOW' | 'MEDIUM' | 'HIGH'
-  if (numericScore <= 2) {
+  if (numericScore <= 4) {
     level = 'LOW'
-  } else if (numericScore <= 5) {
+  } else if (numericScore <= 9) {
     level = 'MEDIUM'
   } else {
     level = 'HIGH'
@@ -225,13 +438,14 @@ export async function scanUrl(url: string): Promise<ScanResult> {
   }
 
   // Run all checks in parallel
-  const [headerFindings, sslFindings, portFindings] = await Promise.all([
+  const [headerFindings, sslFindings, portFindings, xssFindings] = await Promise.all([
     checkHeaders(targetUrl),
     checkSSL(targetUrl),
     checkPorts(targetUrl),
+    checkXSSSurface(targetUrl),
   ])
 
-  const allFindings = [...headerFindings, ...sslFindings, ...portFindings]
+  const allFindings = [...headerFindings, ...sslFindings, ...portFindings, ...xssFindings]
   const { score, level } = calculateRiskScore(allFindings)
 
   return {
@@ -240,4 +454,3 @@ export async function scanUrl(url: string): Promise<ScanResult> {
     riskLevel: level,
   }
 }
-

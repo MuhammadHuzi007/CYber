@@ -1,24 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { scanUrl } from '@/lib/scanner'
+import { getSession } from '@/lib/session'
 import { z } from 'zod'
 
 const scanSchema = z.object({
   url: z.string().url('Invalid URL format'),
-  userId: z.string().optional(),
 })
 
 // POST /api/scans - Create and run a new scan
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession()
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
-    const { url, userId } = scanSchema.parse(body)
+    const { url } = scanSchema.parse(body)
 
     // Create scan with PENDING status
     const scan = await prisma.scan.create({
       data: {
         url,
-        userId: userId || null,
+        userId: session.userId,
         riskScore: 0,
         riskLevel: 'LOW',
         status: 'PENDING',
@@ -82,16 +91,52 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/scans - Get all scans (optionally filtered by userId)
+// GET /api/scans - Get all scans with filters
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession()
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const searchParams = request.nextUrl.searchParams
-    const userId = searchParams.get('userId')
+    const riskLevel = searchParams.get('riskLevel') as 'LOW' | 'MEDIUM' | 'HIGH' | null
+    const q = searchParams.get('q') // URL search
+    const from = searchParams.get('from') // Date from (ISO string)
+    const to = searchParams.get('to') // Date to (ISO string)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
 
-    const where = userId ? { userId } : {}
+    // Build where clause
+    const where: any = {
+      userId: session.userId,
+    }
+
+    if (riskLevel && ['LOW', 'MEDIUM', 'HIGH'].includes(riskLevel)) {
+      where.riskLevel = riskLevel
+    }
+
+    if (q) {
+      where.url = {
+        contains: q,
+        mode: 'insensitive',
+      }
+    }
+
+    if (from || to) {
+      where.startedAt = {}
+      if (from) {
+        where.startedAt.gte = new Date(from)
+      }
+      if (to) {
+        where.startedAt.lte = new Date(to)
+      }
+    }
 
     const [scans, total] = await Promise.all([
       prisma.scan.findMany({

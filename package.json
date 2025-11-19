@@ -13,12 +13,13 @@
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
+    "bcryptjs": "^2.4.3",
+    "html2canvas": "^1.4.1",
+    "jose": "^5.10.0",
+    "jspdf": "^2.5.1",
     "next": "14.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "bcryptjs": "^2.4.3",
-    "jspdf": "^2.5.1",
-    "html2canvas": "^1.4.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -35,4 +36,3 @@
     "typescript": "^5"
   }
 }
-

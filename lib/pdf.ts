@@ -17,64 +17,159 @@ export interface ScanReportData {
 export function generatePDF(data: ScanReportData): jsPDF {
   const doc = new jsPDF()
   
+  let yPos = 20
+  
   // Title
-  doc.setFontSize(20)
-  doc.text('Vulnerability Scan Report', 20, 20)
+  doc.setFontSize(24)
+  doc.setTextColor(59, 130, 246) // Blue
+  doc.text('Vulnerability Scan Report', 20, yPos)
+  yPos += 15
   
-  // Basic Info
-  doc.setFontSize(12)
-  let yPos = 35
-  
+  // Summary Section
+  doc.setFontSize(16)
+  doc.setTextColor(0, 0, 0)
   doc.setFont(undefined, 'bold')
-  doc.text('Scan Information:', 20, yPos)
-  yPos += 8
+  doc.text('Summary', 20, yPos)
+  yPos += 10
   
+  doc.setFontSize(11)
   doc.setFont(undefined, 'normal')
   doc.text(`URL: ${data.url}`, 20, yPos)
   yPos += 7
-  doc.text(`Date: ${data.date}`, 20, yPos)
+  doc.text(`Scan Date: ${data.date}`, 20, yPos)
   yPos += 7
   doc.text(`Risk Score: ${data.riskScore}`, 20, yPos)
   yPos += 7
+  
+  // Risk Level with color
+  const riskColor = data.riskLevel === 'HIGH' ? [220, 38, 38] :
+                    data.riskLevel === 'MEDIUM' ? [234, 179, 8] : [34, 197, 94]
+  doc.setTextColor(...riskColor)
+  doc.setFont(undefined, 'bold')
   doc.text(`Risk Level: ${data.riskLevel}`, 20, yPos)
+  doc.setTextColor(0, 0, 0)
+  doc.setFont(undefined, 'normal')
   yPos += 12
   
-  // Findings
+  // Findings Summary
+  doc.setFontSize(16)
   doc.setFont(undefined, 'bold')
-  doc.text('Findings:', 20, yPos)
-  yPos += 8
+  doc.text('Findings Summary', 20, yPos)
+  yPos += 10
   
+  // Count findings by severity
+  const severityCounts = {
+    HIGH: data.findings.filter(f => !f.passed && f.severity === 'HIGH').length,
+    MEDIUM: data.findings.filter(f => !f.passed && f.severity === 'MEDIUM').length,
+    LOW: data.findings.filter(f => !f.passed && f.severity === 'LOW').length,
+    INFO: data.findings.filter(f => f.passed || f.severity === 'INFO').length,
+  }
+  
+  doc.setFontSize(11)
   doc.setFont(undefined, 'normal')
-  doc.setFontSize(10)
+  doc.text(`Total Findings: ${data.findings.length}`, 20, yPos)
+  yPos += 7
+  doc.setTextColor(220, 38, 38)
+  doc.text(`High Severity Issues: ${severityCounts.HIGH}`, 20, yPos)
+  yPos += 7
+  doc.setTextColor(234, 179, 8)
+  doc.text(`Medium Severity Issues: ${severityCounts.MEDIUM}`, 20, yPos)
+  yPos += 7
+  doc.setTextColor(34, 197, 94)
+  doc.text(`Low Severity Issues: ${severityCounts.LOW}`, 20, yPos)
+  yPos += 7
+  doc.setTextColor(0, 0, 0)
+  doc.text(`Passed Checks: ${severityCounts.INFO}`, 20, yPos)
+  yPos += 15
   
+  // Group findings by type
+  const findingsByType: Record<string, typeof data.findings> = {}
   for (const finding of data.findings) {
-    if (yPos > 270) {
+    if (!findingsByType[finding.type]) {
+      findingsByType[finding.type] = []
+    }
+    findingsByType[finding.type].push(finding)
+  }
+  
+  const typeLabels: Record<string, string> = {
+    HEADER: 'Security Headers',
+    SSL: 'SSL/TLS',
+    PORT: 'Port Scanning',
+    XSS: 'XSS Surface',
+    OTHER: 'Other',
+  }
+  
+  // Detailed Findings
+  for (const [type, findings] of Object.entries(findingsByType)) {
+    if (yPos > 250) {
       doc.addPage()
       yPos = 20
     }
     
-    const status = finding.passed ? '✓ PASS' : '✗ FAIL'
-    const color = finding.passed ? [0, 150, 0] : [200, 0, 0]
+    doc.setFontSize(14)
+    doc.setFont(undefined, 'bold')
+    doc.setTextColor(59, 130, 246)
+    doc.text(typeLabels[type] || type, 20, yPos)
+    yPos += 8
     
-    doc.setTextColor(...color)
-    doc.text(`${status} - ${finding.title}`, 20, yPos)
-    yPos += 6
-    
+    doc.setFontSize(10)
+    doc.setFont(undefined, 'normal')
     doc.setTextColor(0, 0, 0)
-    doc.setFontSize(8)
-    doc.text(`Type: ${finding.type} | Severity: ${finding.severity}`, 25, yPos)
-    yPos += 5
     
-    if (finding.details) {
-      const details = doc.splitTextToSize(finding.details, 170)
-      doc.text(details, 25, yPos)
-      yPos += details.length * 5
+    for (const finding of findings) {
+      if (yPos > 270) {
+        doc.addPage()
+        yPos = 20
+      }
+      
+      // Status icon and title
+      const status = finding.passed ? '✓ PASS' : '✗ FAIL'
+      const color = finding.passed ? [34, 197, 94] : [220, 38, 38]
+      
+      doc.setTextColor(...color)
+      doc.setFont(undefined, 'bold')
+      doc.text(`${status} - ${finding.title}`, 25, yPos)
+      yPos += 6
+      
+      doc.setTextColor(0, 0, 0)
+      doc.setFont(undefined, 'normal')
+      doc.setFontSize(9)
+      doc.text(`Type: ${type} | Severity: ${finding.severity}`, 30, yPos)
+      yPos += 5
+      
+      if (finding.details) {
+        const details = doc.splitTextToSize(finding.details, 160)
+        doc.setFontSize(8)
+        doc.text(details, 30, yPos)
+        yPos += details.length * 4
+      }
+      
+      yPos += 3
+      doc.setFontSize(10)
     }
     
-    yPos += 3
-    doc.setFontSize(10)
+    yPos += 5
+  }
+  
+  // Footer on last page
+  const pageCount = doc.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setFontSize(8)
+    doc.setTextColor(128, 128, 128)
+    doc.text(
+      `Page ${i} of ${pageCount} | Generated by Vulnerability Scanner`,
+      20,
+      285,
+      { align: 'left' }
+    )
+    doc.text(
+      new Date().toLocaleString(),
+      190,
+      285,
+      { align: 'right' }
+    )
   }
   
   return doc
 }
-

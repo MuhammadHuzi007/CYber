@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyUser } from '@/lib/auth'
+import { createSession } from '@/lib/session'
 import { z } from 'zod'
 
 const loginSchema = z.object({
@@ -20,8 +21,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // In a production app, you'd set a session cookie or JWT here
-    // For MVP, we'll just return the user data
+    // Create session
+    await createSession(user.id)
+
     return NextResponse.json({
       id: user.id,
       email: user.email,
